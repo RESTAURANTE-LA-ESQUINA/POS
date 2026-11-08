@@ -26,23 +26,23 @@
                     <i class="fa-solid fa-utensils text-2xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white">Acceso al Sistema</h2>
-                <p class="text-xs text-gray-400 mt-1">Ingresa tu usuario y contraseña</p>
-                <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[11px]">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Base de datos conectada
+                <p class="text-xs text-gray-400 mt-1">Ingresa con tu usuario y contraseña</p>
+                <div class="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Sistema Listo
                 </div>
             </div>
             
             <form id="form-login" onsubmit="iniciarSesion(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Nombre de Usuario</label>
-                    <input type="text" id="login-username" required placeholder="Ej: admin o mesero1" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs text-gray-400 mb-1">Usuario</label>
+                    <input type="text" id="login-username" required placeholder="admin" value="admin" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Contraseña</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    <input type="password" id="login-password" required placeholder="••••••••" value="admin123" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 
-                <button type="submit" id="btn-login" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition">
+                <button type="submit" id="btn-login" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg text-sm transition shadow-lg shadow-emerald-900/30">
                     Iniciar Sesión
                 </button>
             </form>
@@ -314,11 +314,9 @@
 
     <!-- JAVASCRIPT PRINCIPAL -->
     <script>
-        // CREDENCIALES INTEGRADAS DE SUPABASE
         const supabaseUrl = 'https://izwbgiddufxlunvfkfnl.supabase.co';
         const supabaseKey = 'sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz';
         
-        // Inicializar cliente Supabase
         var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let usuarioActual = null;
@@ -326,7 +324,6 @@
         let comandaMesaSeleccionada = null;
         let productosCache = [];
 
-        // Función estandarizada para convertir usuario a formato de correo compatible
         function formatUserEmail(username) {
             const cleanUser = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
             return `${cleanUser}@restaurante-app.com`;
@@ -336,7 +333,6 @@
             verificarSesionActiva();
         });
 
-        // CONTROL DE SESIÓN
         async function verificarSesionActiva() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -352,17 +348,31 @@
         async function iniciarSesion(e) {
             e.preventDefault();
 
-            const usernameInput = document.getElementById('login-username').value;
+            const usernameInput = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
             const btn = document.getElementById('btn-login');
 
             btn.disabled = true;
             btn.innerText = "Verificando...";
 
-            // Convertir username a correo válido
             const internalEmail = formatUserEmail(usernameInput);
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email: internalEmail, password });
+            // Intentar autenticación estándar con Supabase Auth
+            let { data, error } = await supabase.auth.signInWithPassword({ email: internalEmail, password });
+
+            // SI ES EL USUARIO ADMIN Y AÚN NO EXISTE EN SUPABASE AUTH, LO REGISTRA E INSERTA AUTOMÁTICAMENTE
+            if (error && (usernameInput.toLowerCase() === 'admin')) {
+                const signUpRes = await supabase.auth.signUp({ email: internalEmail, password });
+                if (signUpRes.data?.user) {
+                    const adminId = signUpRes.data.user.id;
+                    await supabase.from('perfiles').upsert([{ id: adminId, nombre: 'Allan Godoy', rol: 'administrador' }]);
+                    
+                    // Reintentar login
+                    const retry = await supabase.auth.signInWithPassword({ email: internalEmail, password });
+                    data = retry.data;
+                    error = retry.error;
+                }
+            }
 
             btn.disabled = false;
             btn.innerText = "Iniciar Sesión";
@@ -376,20 +386,25 @@
         }
 
         async function cargarPerfilUsuario(userId) {
-            const { data: perfil, error } = await supabase
+            let { data: perfil, error } = await supabase
                 .from('perfiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            if (error || !perfil) {
-                alert("Atención: Usuario autenticado sin rol asignado en la tabla 'perfiles'.");
-                usuarioActual = { nombre: "Empleado", rol: "mesero" };
-            } else {
-                usuarioActual = perfil;
+            // Si es la cuenta principal, asegurar el rol administrador
+            if (!perfil) {
+                const { data: userData } = await supabase.auth.getUser();
+                if (userData?.user?.email === 'admin@restaurante-app.com') {
+                    await supabase.from('perfiles').upsert([{ id: userId, nombre: 'Allan Godoy', rol: 'administrador' }]);
+                    perfil = { id: userId, nombre: 'Allan Godoy', rol: 'administrador' };
+                } else {
+                    perfil = { nombre: "Empleado", rol: "mesero" };
+                }
             }
 
-            // Ocultar login y mostrar interfaz
+            usuarioActual = perfil;
+
             document.getElementById('pantalla-login').classList.add('hidden');
             document.getElementById('app-header').classList.remove('hidden');
             document.getElementById('nav-mobile').classList.remove('hidden');
@@ -397,7 +412,6 @@
 
             document.getElementById('label-usuario-rol').innerText = `${usuarioActual.nombre} (${usuarioActual.rol.toUpperCase()})`;
 
-            // Aplicar restricciones según Rol
             const adminsElements = document.querySelectorAll('.mod-admin');
             if (usuarioActual.rol === 'administrador') {
                 adminsElements.forEach(el => el.classList.remove('hidden'));
@@ -406,7 +420,6 @@
                 adminsElements.forEach(el => el.classList.add('hidden'));
                 cambiarModulo('kds');
             } else {
-                // Mesero
                 adminsElements.forEach(el => el.classList.add('hidden'));
                 cambiarModulo('mesas');
             }
@@ -419,13 +432,11 @@
             location.reload();
         }
 
-        // CAMBIO DE MÓDULOS EN LA UI
         function cambiarModulo(modId) {
             document.querySelectorAll('.modulo-sec').forEach(sec => sec.classList.add('hidden'));
             const targetSec = document.getElementById(`sec-${modId}`);
             if(targetSec) targetSec.classList.remove('hidden');
 
-            // Cargar datos correspondientes
             if (modId === 'mesas') cargarMesas();
             if (modId === 'pos') cargarModuloPOS();
             if (modId === 'kds') cargarKDS();
@@ -439,9 +450,8 @@
             const container = document.getElementById('grid-mesas');
             container.innerHTML = `<div class="col-span-full text-center text-xs text-gray-400">Cargando mapa de mesas...</div>`;
 
-            let { data: mesas, error } = await supabase.from('mesas').select('*').order('numero');
+            let { data: mesas } = await supabase.from('mesas').select('*').order('numero');
             
-            // Si la tabla está vacía, insertar mesas por defecto
             if (!mesas || mesas.length === 0) {
                 const mesasDef = Array.from({length: 12}, (_, i) => ({ numero: i + 1, capacidad: 4, estado: 'disponible' }));
                 await supabase.from('mesas').insert(mesasDef);
@@ -573,7 +583,6 @@
                 return;
             }
 
-            // Cambiar estado de la mesa a ocupada si aplica
             if(comandaMesaSeleccionada.tipo === 'mesa') {
                 await supabase.from('mesas').update({ estado: 'ocupada' }).eq('id', comandaMesaSeleccionada.id);
             }
@@ -706,7 +715,7 @@
             const tbody = document.getElementById('tabla-empleados-body');
             tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-gray-400">Cargando lista de personal...</td></tr>`;
 
-            const { data: perfiles, error } = await supabase.from('perfiles').select('*').order('nombre');
+            const { data: perfiles } = await supabase.from('perfiles').select('*').order('nombre');
             
             tbody.innerHTML = '';
             if(!perfiles || perfiles.length === 0) {
@@ -743,16 +752,14 @@
 
             const internalEmail = formatUserEmail(username);
 
-            // 1. Crear usuario en Supabase Auth
             const { data: authData, error: authError } = await supabase.auth.signUp({ email: internalEmail, password });
 
             if(authError) {
-                alert("Error al crear usuario de empleado: " + authError.message);
+                alert("Error al crear usuario: " + authError.message);
                 return;
             }
 
             if(authData.user) {
-                // 2. Insertar perfil en la tabla de perfiles
                 const { error: perfilError } = await supabase.from('perfiles').insert([{
                     id: authData.user.id,
                     nombre: nombre,
@@ -762,7 +769,7 @@
                 if(perfilError) {
                     alert("Error al guardar perfil de empleado: " + perfilError.message);
                 } else {
-                    alert(`¡Empleado ${nombre} registrado exitosamente con usuario '${username}' y rol '${rol.toUpperCase()}'!`);
+                    alert(`¡Empleado ${nombre} registrado exitosamente con usuario '${username}'!`);
                     document.getElementById('form-crear-empleado').reset();
                     cargarTablaEmpleados();
                 }
