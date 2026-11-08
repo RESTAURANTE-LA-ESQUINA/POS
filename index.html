@@ -27,6 +27,9 @@
                 </div>
                 <h2 class="text-2xl font-bold text-white">Acceso al Sistema</h2>
                 <p class="text-xs text-gray-400 mt-1">Ingresa tus credenciales para continuar</p>
+                <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[11px]">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Base de datos conectada
+                </div>
             </div>
             
             <form id="form-login" onsubmit="iniciarSesion(event)" class="space-y-4">
@@ -43,36 +46,6 @@
                     Iniciar Sesión
                 </button>
             </form>
-
-            <div class="mt-6 pt-4 border-t border-gray-800 text-center">
-                <button onclick="activarConfiguracionSupabase()" class="text-xs text-gray-400 hover:text-emerald-400 flex items-center justify-center gap-1 mx-auto">
-                    <i class="fa-solid fa-gear"></i> Configurar credenciales de Supabase
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL DE CONFIGURACIÓN SUPABASE -->
-    <div id="modal-config" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden p-4">
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full shadow-xl">
-            <h3 class="text-lg font-bold mb-3 text-white flex items-center gap-2">
-                <i class="fa-solid fa-database text-emerald-400"></i> Conexión Supabase
-            </h3>
-            <p class="text-xs text-gray-400 mb-4">Ingresa la URL y Anon Key de tu proyecto Supabase.</p>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs text-gray-300 mb-1">Supabase URL</label>
-                    <input type="text" id="cfg-url" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500" placeholder="https://xyz.supabase.co">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-300 mb-1">Supabase Anon Key</label>
-                    <input type="password" id="cfg-key" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500" placeholder="eyJhY... (Anon Key)">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 mt-5">
-                <button onclick="cerrarConfiguracionSupabase()" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-200 text-xs rounded">Cancelar</button>
-                <button onclick="guardarConfiguracionSupabase()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs rounded">Guardar Credenciales</button>
-            </div>
         </div>
     </div>
 
@@ -339,12 +312,14 @@
         </section>
     </main>
 
-    <!-- JAVASCRIPT PRINCIPAL -->
+    <!-- JAVASCRIPT PRINCIPAL CON CREDENCIALES INTEGRADAS -->
     <script>
-        // CONFIGURACIÓN INICIAL SUPABASE
-        let supabaseUrl = localStorage.getItem('sb_url') || '';
-        let supabaseKey = localStorage.getItem('sb_key') || '';
-        let supabase = null;
+        // CREDENCIALES INTEGRADAS DE SUPABASE
+        const supabaseUrl = 'https://izwbgiddufxlunvfkfnl.supabase.co';
+        const supabaseKey = 'sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz';
+        
+        // Inicializar cliente Supabase inmediatamente
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let usuarioActual = null;
         let carritoPOS = [];
@@ -352,49 +327,11 @@
         let productosCache = [];
 
         window.addEventListener('DOMContentLoaded', () => {
-            if (supabaseUrl && supabaseKey) {
-                initSupabase();
-            } else {
-                activarConfiguracionSupabase();
-            }
+            verificarSesionActiva();
         });
-
-        function initSupabase() {
-            try {
-                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                verificarSesionActiva();
-            } catch(e) {
-                alert("Error al conectar con Supabase. Revisa las credenciales.");
-                activarConfiguracionSupabase();
-            }
-        }
-
-        function activarConfiguracionSupabase() {
-            document.getElementById('cfg-url').value = supabaseUrl;
-            document.getElementById('cfg-key').value = supabaseKey;
-            document.getElementById('modal-config').classList.remove('hidden');
-        }
-
-        function cerrarConfiguracionSupabase() {
-            document.getElementById('modal-config').classList.add('hidden');
-        }
-
-        function guardarConfiguracionSupabase() {
-            const url = document.getElementById('cfg-url').value.trim();
-            const key = document.getElementById('cfg-key').value.trim();
-            if(!url || !key) return alert("Ingresa URL y Key válidas.");
-            
-            localStorage.setItem('sb_url', url);
-            localStorage.setItem('sb_key', key);
-            supabaseUrl = url;
-            supabaseKey = key;
-            cerrarConfiguracionSupabase();
-            initSupabase();
-        }
 
         // CONTROL DE SESIÓN
         async function verificarSesionActiva() {
-            if(!supabase) return;
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 cargarPerfilUsuario(session.user.id);
@@ -408,7 +345,6 @@
 
         async function iniciarSesion(e) {
             e.preventDefault();
-            if(!supabase) return activarConfiguracionSupabase();
 
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
@@ -438,8 +374,8 @@
                 .single();
 
             if (error || !perfil) {
-                alert("Atención: Usuario autenticado sin rol asignado en la tabla 'perfiles'.");
-                usuarioActual = { nombre: "Usuario sin Rol", rol: "mesero" };
+                alert("Atención: Usuario sin registro en la tabla 'perfiles'. Asignando vista básica.");
+                usuarioActual = { nombre: "Empleado", rol: "mesero" };
             } else {
                 usuarioActual = perfil;
             }
@@ -470,7 +406,7 @@
         }
 
         async function cerrarSesion() {
-            if(supabase) await supabase.auth.signOut();
+            await supabase.auth.signOut();
             location.reload();
         }
 
