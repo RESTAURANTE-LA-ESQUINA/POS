@@ -318,7 +318,7 @@
         const supabaseUrl = 'https://izwbgiddufxlunvfkfnl.supabase.co';
         const supabaseKey = 'sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz';
         
-        // Inicialización ÚNICA del cliente Supabase
+        // Inicializar cliente Supabase
         var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let usuarioActual = null;
@@ -326,10 +326,10 @@
         let comandaMesaSeleccionada = null;
         let productosCache = [];
 
-        // Función auxiliar para convertir username a formato email aceptado por Supabase Auth
+        // Función estandarizada para convertir usuario a formato de correo compatible
         function formatUserEmail(username) {
             const cleanUser = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            return `${cleanUser}@restaurante.internal`;
+            return `${cleanUser}@restaurante-app.com`;
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -359,7 +359,7 @@
             btn.disabled = true;
             btn.innerText = "Verificando...";
 
-            // Convertir username a formato de autenticación interna
+            // Convertir username a correo válido
             const internalEmail = formatUserEmail(usernameInput);
 
             const { data, error } = await supabase.auth.signInWithPassword({ email: internalEmail, password });
@@ -368,7 +368,7 @@
             btn.innerText = "Iniciar Sesión";
 
             if (error) {
-                alert("Error de acceso: Usuario o contraseña incorrectos.");
+                alert("Error de acceso: " + error.message);
                 return;
             }
 
@@ -383,7 +383,7 @@
                 .single();
 
             if (error || !perfil) {
-                alert("Atención: Usuario sin registro en la tabla 'perfiles'. Asignando vista básica.");
+                alert("Atención: Usuario autenticado sin rol asignado en la tabla 'perfiles'.");
                 usuarioActual = { nombre: "Empleado", rol: "mesero" };
             } else {
                 usuarioActual = perfil;
