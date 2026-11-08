@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="es" class="dark h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión de Restaurante - Supabase POS</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Supabase JS Client library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col md:flex-row font-sans overflow-hidden bg-slate-950 text-slate-100">
+
+  <!-- NOTIFICATION TOAST CONTAINER -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-auto md:h-full z-20">
+    <div>
+      <!-- Brand Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-brand-600 rounded-xl text-white font-bold">
+            <i class="fa-solid font-black fa-utensils"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
+            <span class="text-xs text-brand-500 font-medium">Supabase POS v2.0</span>
+          </div>
+        </div>
+        <!-- Status Indicator -->
+        <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-140px)]">
+        <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-cash-register w-5 text-center text-brand-500"></i> Pedido (POS)
+        </button>
+        <button onclick="switchTab('mesas')" id="nav-mesas" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-table-cells w-5 text-center text-blue-400"></i> Mesas
+        </button>
+        <button onclick="switchTab('para-llevar')" id="nav-para-llevar" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-bag-shopping w-5 text-center text-amber-400"></i> Para Llevar
+        </button>
+        <button onclick="switchTab('reservaciones')" id="nav-reservaciones" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-calendar-check w-5 text-center text-emerald-400"></i> Reservaciones
+        </button>
+        <button onclick="switchTab('kds')" id="nav-kds" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-fire-burner w-5 text-center text-rose-400"></i> Cocina y Barra
+        </button>
+        <button onclick="switchTab('caja')" id="nav-caja" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-vault w-5 text-center text-purple-400"></i> Ventas y Caja
+        </button>
+        <button onclick="switchTab('menu')" id="nav-menu" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-book-open w-5 text-center text-teal-400"></i> Menú / Productos
+        </button>
+        <button onclick="switchTab('inventario')" id="nav-inventario" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-boxes-stacked w-5 text-center text-indigo-400"></i> Inventario
+        </button>
+        <button onclick="switchTab('historial')" id="nav-historial" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-clock-rotate-left w-5 text-center text-sky-400"></i> Historial
+        </button>
+      </nav>
+    </div>
+
+    <!-- Bottom Actions: Config & SQL Setup -->
+    <div class="p-3 border-t border-slate-800 space-y-1">
+      <button onclick="switchTab('config')" id="nav-config" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+        <i class="fa-solid fa-gear w-5 text-center text-slate-400"></i> Configuración Supabase
+      </button>
+      <button onclick="switchTab('ayuda-sql')" id="nav-ayuda-sql" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+        <i class="fa-solid fa-database w-5 text-center text-amber-500"></i> Esquema SQL
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
+
+    <!-- TAB: CONFIGURACIÓN SUPABASE -->
+    <section id="tab-config" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+            <i class="fa-solid fa-plug text-2xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-slate-100">Conexión a Supabase Cloud</h2>
+            <p class="text-xs text-slate-400">Ingresa tus credenciales para sincronizar la base de datos en tiempo real.</p>
+          </div>
+        </div>
+
+        <form id="supabase-config-form" onsubmit="event.preventDefault(); saveSupabaseCredentials();" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Project URL</label>
+            <input type="text" id="supabase-url" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Anon / Public API Key</label>
+            <input type="password" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none text-slate-100">
+          </div>
+          <div class="pt-4 flex items-center justify-between border-t border-slate-800">
+            <div id="connection-status-msg" class="text-xs text-slate-400 flex items-center gap-2">
+              <i class="fa-solid fa-circle-question"></i> No verificado
+            </div>
+            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/20">
+              <i class="fa-solid fa-bolt"></i> Conectar y Guardar
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+          <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Nota de Almacenamiento</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Las credenciales de Supabase se conservan localmente en la sesión activa únicamente para mantener la sincronización directa cliente-servidor a través de la API oficial de Supabase SDK. No se almacena ninguna información comercial de mesas o productos en almacenamiento local.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: POS (TOMA DE COMMANDAS) -->
+    <section id="tab-pos" class="tab-content hidden h-full flex flex-col md:flex-row overflow-hidden">
+      <!-- Izquierda: Catálogo de Productos -->
+      <div class="flex-1 flex flex-col h-full overflow-hidden p-4 border-r border-slate-800">
+        <!-- Categorías bar -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-2 shrink-0" id="pos-categories">
+          <button onclick="filterPosProducts('all')" class="cat-btn active px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap bg-brand-600 text-white shadow-md">
+            Todos
+          </button>
+          <!-- Categorías insertadas dinámicamente -->
+        </div>
+
+        <!-- Grid de Productos -->
+        <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1" id="pos-products-grid">
+          <!-- Items generados por JS -->
+        </div>
+      </div>
+
+      <!-- Derecha: Comanda / Ticket Activo -->
+      <div class="w-full md:w-96 bg-slate-900 flex flex-col h-full border-t md:border-t-0 border-slate-800 shrink-0">
+        <!-- Header Comanda -->
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+          <div>
+            <h3 class="font-bold text-slate-100 flex items-center gap-2">
+              <i class="fa-solid fa-receipt text-brand-500"></i> Comanda Actual
+            </h3>
+            <span id="pos-order-context" class="text-xs text-amber-400 font-medium">Mesa / Cliente no asignado</span>
+          </div>
+          <button onclick="clearPosCart()" class="text-xs text-rose-400 hover:text-rose-300 font-medium hover:underline">
+            Vaciar
+          </button>
+        </div>
+
+        <!-- Lista de Items en Comanda -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="pos-cart-items">
+          <div class="text-center py-12 text-slate-500 text-xs">
+            <i class="fa-solid fa-basket-shopping text-3xl mb-2"></i>
+            <p>Selecciona productos del menú para agregar al pedido.</p>
+          </div>
+        </div>
+
+        <!-- Pie de Comanda / Totales y Envío -->
+        <div class="p-4 border-t border-slate-800 bg-slate-950 space-y-3">
+          <div class="space-y-1 text-sm">
+            <div class="flex justify-between text-slate-400">
+              <span>Subtotal</span>
+              <span id="pos-subtotal">$0.00</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+              <span>Impuesto (16%)</span>
+              <span id="pos-tax">$0.00</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold text-slate-100 pt-2 border-t border-slate-800">
+              <span>Total</span>
+              <span id="pos-total" class="text-brand-500">$0.00</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="submitOrderToKitchen()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 border border-slate-700">
+              <i class="fa-solid fa-paper-plane text-emerald-400"></i> Enviar a KDS
+            </button>
+            <button onclick="proceedToCheckout()" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-brand-600/20">
+              <i class="fa-solid fa-credit-card"></i> Cobrar Ahora
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: MESAS -->
+    <section id="tab-mesas" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Mapa Interactivo de Mesas</h2>
+          <p class="text-xs text-slate-400">Gestiona la ocupación de la sala en tiempo real.</p>
+        </div>
+        <button onclick="openAddTableModal()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Nueva Mesa
+        </button>
+      </div>
+
+      <!-- Leyenda de Estados -->
+      <div class="flex gap-4 mb-6 bg-slate-900 p-3 rounded-xl border border-slate-800 w-fit text-xs">
+        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Disponible</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Ocupada</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Reservada</div>
+      </div>
+
+      <!-- Grid de Mesas -->
+      <div id="mesas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <!-- Renderizado dinámico de mesas -->
+      </div>
+    </section>
+
+    <!-- TAB: PARA LLEVAR -->
+    <section id="tab-para-llevar" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Pedidos Para Llevar / Domicilio</h2>
+          <p class="text-xs text-slate-400">Registro de comanda externa sin asignación de mesa.</p>
+        </div>
+        <button onclick="openNewTakeawayOrder()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-bag-shopping"></i> Nuevo Pedido
+        </button>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">ID Pedido</th>
+              <th class="p-3">Cliente</th>
+              <th class="p-3">Teléfono</th>
+              <th class="p-3">Tipo</th>
+              <th class="p-3">Estado</th>
+              <th class="p-3">Total</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="takeaway-table-body" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: RESERVACIONES -->
+    <section id="tab-reservaciones" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Gestión de Reservaciones</h2>
+          <p class="text-xs text-slate-400">Agenda de clientes e integración con el mapa de mesas.</p>
+        </div>
+        <button onclick="openNewReservationModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-calendar-plus"></i> Crear Reservación
+        </button>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">Cliente</th>
+              <th class="p-3">Fecha y Hora</th>
+              <th class="p-3">Personas</th>
+              <th class="p-3">Mesa Asignada</th>
+              <th class="p-3">Estado</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="reservations-table-body" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: KDS (COCINA Y BARRA) -->
+    <section id="tab-kds" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
+      <!-- Header de KDS -->
+      <div class="flex justify-between items-center mb-4 shrink-0">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Pantalla de Preparación (KDS)</h2>
+          <p class="text-xs text-slate-400">Monitoreo de comandas en tiempo real.</p>
+        </div>
+        <!-- Selector de Estación -->
+        <div class="flex gap-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <button onclick="filterKdsStation('all')" id="kds-filter-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white">Todos</button>
+          <button onclick="filterKdsStation('cocina')" id="kds-filter-cocina" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200">Cocina</button>
+          <button onclick="filterKdsStation('barra')" id="kds-filter-barra" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200">Barra</button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Pedidos Activos -->
+      <div id="kds-cards-container" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1">
+        <!-- Tarjetas dinámicas KDS -->
+      </div>
+    </section>
+
+    <!-- TAB: VENTAS Y CAJA -->
+    <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="max-w-4xl mx-auto space-y-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100">Caja y Arqueo Diario</h2>
+            <p class="text-xs text-slate-400">Resumen de ingresos del día activo y cierre de caja.</p>
+          </div>
+          <button onclick="performCashCutoff()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-lock"></i> Realizar Corte de Caja
+          </button>
+        </div>
+
+        <!-- Tarjetas Metricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Ventas Totales</span>
+            <span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">$0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Efectivo en Caja</span>
+            <span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">$0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Tarjeta / Transferencia</span>
+            <span id="caja-total-digital" class="text-2xl font-bold text-blue-400">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Tabla de Transacciones del día -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+          <div class="p-4 border-b border-slate-800 font-bold text-sm text-slate-200">
+            Últimos Cobros Realizados
+          </div>
+          <table class="w-full text-left text-xs">
+            <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+              <tr>
+                <th class="p-3">Hora</th>
+                <th class="p-3">Origen</th>
+                <th class="p-3">Método Pago</th>
+                <th class="p-3">Monto</th>
+              </tr>
+            </thead>
+            <tbody id="caja-transactions-body" class="divide-y divide-slate-800">
+              <!-- Renderizado dinámico -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: MENU / PRODUCTOS -->
+    <section id="tab-menu" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Gestión de Catálogo / Menú</h2>
+          <p class="text-xs text-slate-400">Agrega o modifica los productos ofertados.</p>
+        </div>
+        <button onclick="openProductModal()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Nuevo Producto
+        </button>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">Nombre</th>
+              <th class="p-3">Categoría</th>
+              <th class="p-3">Estación KDS</th>
+              <th class="p-3">Precio</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="menu-table-body" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: INVENTARIO -->
+    <section id="tab-inventario" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Control de Inventario e Insumos</h2>
+          <p class="text-xs text-slate-400">Stock actual de materia prima y alertas de mínimo.</p>
+        </div>
+        <button onclick="openInventoryModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Agregar Insumo
+        </button>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">Insumo</th>
+              <th class="p-3">Unidad</th>
+              <th class="p-3">Stock Actual</th>
+              <th class="p-3">Stock Mínimo</th>
+              <th class="p-3">Estado</th>
+              <th class="p-3 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-table-body" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: HISTORIAL -->
+    <section id="tab-historial" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Historial General de Ventas</h2>
+          <p class="text-xs text-slate-400">Registro histórico de pedidos finalizados.</p>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <tr>
+              <th class="p-3">ID Pedido</th>
+              <th class="p-3">Fecha / Hora</th>
+              <th class="p-3">Origen</th>
+              <th class="p-3">Método Pago</th>
+              <th class="p-3">Total</th>
+            </tr>
+          </thead>
+          <tbody id="history-table-body" class="divide-y divide-slate-800">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB: AYUDA ESQUEMA SQL SUPABASE -->
+    <section id="tab-ayuda-sql" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="max-w-4xl mx-auto space-y-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Esquema SQL para Supabase</h2>
+          <p class="text-xs text-slate-400">Copia e ejecuta este script en el <b>SQL Editor</b> de tu panel de Supabase para inicializar las tablas necesarias.</p>
+        </div>
+
+        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
+          <button onclick="copySqlSchema()" class="absolute top-4 right-4 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-sans transition border border-slate-700">
+            <i class="fa-solid fa-copy"></i> Copiar Script SQL
+          </button>
+          <pre id="sql-code-block">
+-- 1. TABLA DE MESAS
+CREATE TABLE IF NOT EXISTS mesas (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  numero INT NOT NULL,
+  capacidad INT DEFAULT 4,
+  estado TEXT DEFAULT 'disponible' CHECK (estado IN ('disponible', 'ocupada', 'reservada')),
+  cliente TEXT DEFAULT NULL
+);
+
+-- 2. TABLA DE PRODUCTOS / MENÚ
+CREATE TABLE IF NOT EXISTS productos (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  categoria TEXT NOT NULL,
+  estacion TEXT CHECK (estacion IN ('cocina', 'barra')),
+  precio NUMERIC(10,2) NOT NULL
+);
+
+-- 3. TABLA DE PEDIDOS
+CREATE TABLE IF NOT EXISTS pedidos (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  origen TEXT NOT NULL, -- e.g. "Mesa 1", "Para Llevar - Juan"
+  tipo TEXT CHECK (tipo IN ('mesa', 'para-llevar', 'domicilio')),
+  estado TEXT DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'preparacion', 'listo', 'pagado', 'cancelado')),
+  metodo_pago TEXT DEFAULT NULL,
+  subtotal NUMERIC(10,2) DEFAULT 0,
+  impuesto NUMERIC(10,2) DEFAULT 0,
+  total NUMERIC(10,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. DETALLES DE PEDIDO
+CREATE TABLE IF NOT EXISTS detalles_pedido (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  pedido_id BIGINT REFERENCES pedidos(id) ON DELETE CASCADE,
+  producto_id BIGINT REFERENCES productos(id),
+  nombre_producto TEXT NOT NULL,
+  cantidad INT NOT NULL,
+  precio_unitario NUMERIC(10,2) NOT NULL,
+  notas TEXT DEFAULT '',
+  estacion TEXT CHECK (estacion IN ('cocina', 'barra'))
+);
+
+-- 5. TABLA DE RESERVACIONES
+CREATE TABLE IF NOT EXISTS reservaciones (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  cliente TEXT NOT NULL,
+  telefono TEXT,
+  fecha_hora TIMESTAMPTZ NOT NULL,
+  personas INT DEFAULT 2,
+  mesa_id BIGINT REFERENCES mesas(id),
+  estado TEXT DEFAULT 'confirmada'
+);
+
+-- 6. TABLA DE INVENTARIO
+CREATE TABLE IF NOT EXISTS inventario (
+  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+  insumo TEXT NOT NULL,
+  unidad TEXT NOT NULL,
+  stock_actual NUMERIC(10,2) DEFAULT 0,
+  stock_minimo NUMERIC(10,2) DEFAULT 5
+);
+
+-- Insertar Datos Semilla de Ejemplo
+INSERT INTO mesas (numero, capacidad, estado) VALUES (1, 4, 'disponible'), (2, 2, 'disponible'), (3, 6, 'disponible'), (4, 4, 'disponible');
+
+INSERT INTO productos (nombre, categoria, estacion, precio) VALUES 
+('Hamburguesa Clásica', 'Comidas', 'cocina', 12.50),
+('Tacos al Pastor', 'Comidas', 'cocina', 10.00),
+('Pizza Margherita', 'Comidas', 'cocina', 15.00),
+('Margarita Coctel', 'Bebidas', 'barra', 8.50),
+('Cerveza Artesanal', 'Bebidas', 'barra', 5.00),
+('Pastel de Chocolate', 'Postres', 'barra', 6.00);
+
+INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES 
+('Carne de Res', 'Kg', 15.5, 5.0),
+('Queso Mozzarella', 'Kg', 8.0, 3.0),
+('Cerveza Barril', 'Litros', 40.0, 10.0);
+          </pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODALES DE ACCIÓN -->
+
+  <!-- Modal Checkout / Cobro -->
+  <div id="modal-checkout" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100">Procesar Cobro de Comanda</h3>
+        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <span class="text-xs text-slate-400">Monto Total a Pagar</span>
+        <div id="checkout-amount" class="text-3xl font-extrabold text-brand-500 mb-4">$0.00</div>
+
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Método de Pago</label>
+        <select id="checkout-payment-method" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 mb-3">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
+          <option value="Transferencia">Transferencia Bancaria</option>
+        </select>
+
+        <label class="block text-xs font-semibold text-slate-300 mb-1">Monto Entregado (Efectivo)</label>
+        <input type="number" step="0.01" id="checkout-cash-given" oninput="calculateChange()" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 mb-3">
+
+        <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-xl text-xs">
+          <span class="text-slate-400">Cambio a devolver:</span>
+          <span id="checkout-change" class="font-bold text-emerald-400 text-sm">$0.00</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeCheckoutModal()" class="w-1/2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs py-3 rounded-xl font-semibold">Cancelar</button>
+        <button onclick="confirmPayment()" class="w-1/2 bg-brand-600 hover:bg-brand-500 text-white text-xs py-3 rounded-xl font-semibold shadow-lg shadow-brand-600/20">Confirmar Pago</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Agregar Producto -->
+  <div id="modal-product" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100">Nuevo Producto</h3>
+        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre</label>
+          <input type="text" id="prod-name" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría</label>
+          <input type="text" id="prod-category" placeholder="Comidas, Bebidas, etc." required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Estación KDS</label>
+          <select id="prod-station" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+            <option value="cocina">Cocina</option>
+            <option value="barra">Barra</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Precio ($)</label>
+          <input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeProductModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
+          <button type="submit" class="w-1/2 bg-teal-600 hover:bg-teal-500 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // ESTADO GLOBAL DE LA APLICACIÓN
+    let supabaseClient = null;
+    let currentCart = [];
+    let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
+
+    // MEMORIA CACHE LOCAL (Sincronizada dinámicamente con Supabase si está disponible)
+    let state = {
+      mesas: [
+        { id: 1, numero: 1, capacidad: 4, estado: 'disponible', cliente: '' },
+        { id: 2, numero: 2, capacidad: 2, estado: 'ocupada', cliente: 'Carlos M.' },
+        { id: 3, numero: 3, capacidad: 6, estado: 'reservada', cliente: 'Familia López' },
+        { id: 4, numero: 4, capacidad: 4, estado: 'disponible', cliente: '' }
+      ],
+      productos: [
+        { id: 1, nombre: 'Hamburguesa Clásica', categoria: 'Comidas', estacion: 'cocina', precio: 12.50 },
+        { id: 2, nombre: 'Tacos al Pastor', categoria: 'Comidas', estacion: 'cocina', precio: 10.00 },
+        { id: 3, nombre: 'Margarita Coctel', categoria: 'Bebidas', estacion: 'barra', precio: 8.50 },
+        { id: 4, nombre: 'Cerveza Artesanal', categoria: 'Bebidas', estacion: 'barra', precio: 5.00 },
+        { id: 5, nombre: 'Pastel de Chocolate', categoria: 'Postres', estacion: 'barra', precio: 6.00 }
+      ],
+      pedidos: [],
+      reservaciones: [
+        { id: 1, cliente: 'Familia López', telefono: '555-0192', fecha_hora: '2026-11-08 20:00', personas: 6, mesa_id: 3, estado: 'confirmada' }
+      ],
+      inventario: [
+        { id: 1, insumo: 'Carne de Res', unidad: 'Kg', stock_actual: 15.5, stock_minimo: 5.0 },
+        { id: 2, insumo: 'Queso Mozzarella', unidad: 'Kg', stock_actual: 2.0, stock_minimo: 3.0 }
+      ]
+    };
+
+    // INICIALIZACIÓN
+    window.onload = function () {
+      loadSavedSupabaseConfig();
+      renderAll();
+      switchTab('pos');
+    };
+
+    // NAVEGACIÓN ENTRE PESTAÑAS
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-slate-800', 'text-slate-100'));
+      
+      const targetTab = document.getElementById(`tab-${tabId}`);
+      const targetBtn = document.getElementById(`nav-${tabId}`);
+      
+      if (targetTab) targetTab.classList.remove('hidden');
+      if (targetBtn) targetBtn.classList.add('bg-slate-800', 'text-slate-100');
+    }
+
+    // CONEXIÓN Y CONFIGURACIÓN SUPABASE
+    function loadSavedSupabaseConfig() {
+      const url = sessionStorage.getItem('sb_url');
+      const key = sessionStorage.getItem('sb_key');
+      if (url && key) {
+        document.getElementById('supabase-url').value = url;
+        document.getElementById('supabase-key').value = key;
+        initSupabase(url, key);
+      }
+    }
+
+    function saveSupabaseCredentials() {
+      const url = document.getElementById('supabase-url').value.trim();
+      const key = document.getElementById('supabase-key').value.trim();
+
+      if (!url || !key) {
+        showToast('Ingresa la URL y la Key de Supabase', 'error');
+        return;
+      }
+
+      sessionStorage.setItem('sb_url', url);
+      sessionStorage.setItem('sb_key', key);
+
+      initSupabase(url, key);
+    }
+
+    function initSupabase(url, key) {
+      try {
+        supabaseClient = supabase.createClient(url, key);
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
+        document.getElementById('connection-status-msg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Conectado a Supabase`;
+        showToast('Conexión con Supabase establecida correctamente', 'success');
+        fetchDataFromSupabase();
+      } catch (err) {
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
+        showToast('Error de conexión a Supabase', 'error');
+      }
+    }
+
+    // SINCRONIZACIÓN DATOS DESDE SUPABASE
+    async function fetchDataFromSupabase() {
+      if (!supabaseClient) return;
+
+      try {
+        const { data: mesas } = await supabaseClient.from('mesas').select('*');
+        if (mesas && mesas.length) state.mesas = mesas;
+
+        const { data: productos } = await supabaseClient.from('productos').select('*');
+        if (productos && productos.length) state.productos = productos;
+
+        const { data: pedidos } = await supabaseClient.from('pedidos').select('*');
+        if (pedidos) state.pedidos = pedidos;
+
+        const { data: reservaciones } = await supabaseClient.from('reservaciones').select('*');
+        if (reservaciones) state.reservaciones = reservaciones;
+
+        const { data: inventario } = await supabaseClient.from('inventario').select('*');
+        if (inventario) state.inventario = inventario;
+
+        renderAll();
+      } catch (e) {
+        console.warn('Usando estado local temporal por falta de respuesta:', e);
+      }
+    }
+
+    // RENDERIZADO GLOBAL
+    function renderAll() {
+      renderPosProducts();
+      renderMesas();
+      renderTakeawayTable();
+      renderReservationsTable();
+      renderKds();
+      renderCaja();
+      renderMenuTable();
+      renderInventoryTable();
+      renderHistoryTable();
+    }
+
+    // 1. MÓDULO POS
+    function renderPosProducts(category = 'all') {
+      const grid = document.getElementById('pos-products-grid');
+      const catContainer = document.getElementById('pos-categories');
+      grid.innerHTML = '';
+
+      // Categorías dinámicas
+      const categories = ['all', ...new Set(state.productos.map(p => p.categoria))];
+      catContainer.innerHTML = categories.map(cat => `
+        <button onclick="renderPosProducts('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap ${category === cat ? 'bg-brand-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}">
+          ${cat === 'all' ? 'Todos' : cat}
+        </button>
+      `).join('');
+
+      const filtered = category === 'all' 
+        ? state.productos 
+        : state.productos.filter(p => p.categoria === category);
+
+      filtered.forEach(prod => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 hover:border-brand-500/50 rounded-2xl p-3 flex flex-col justify-between cursor-pointer transition transform active:scale-95";
+        card.onclick = () => addToCart(prod);
+        card.innerHTML = `
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-500">${prod.categoria}</span>
+            <h4 class="font-semibold text-sm text-slate-100 line-clamp-2">${prod.nombre}</h4>
+          </div>
+          <div class="mt-3 flex justify-between items-center">
+            <span class="font-bold text-brand-500 text-sm">$${parseFloat(prod.precio).toFixed(2)}</span>
+            <span class="p-1.5 bg-slate-800 rounded-lg text-xs text-slate-300"><i class="fa-solid fa-plus"></i></span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function addToCart(prod) {
+      const existing = currentCart.find(item => item.id === prod.id);
+      if (existing) {
+        existing.cantidad += 1;
+      } else {
+        currentCart.push({ ...prod, cantidad: 1, notas: '' });
+      }
+      renderCart();
+    }
+
+    function updateCartQty(index, delta) {
+      currentCart[index].cantidad += delta;
+      if (currentCart[index].cantidad <= 0) {
+        currentCart.splice(index, 1);
+      }
+      renderCart();
+    }
+
+    function clearPosCart() {
+      currentCart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('pos-cart-items');
+      document.getElementById('pos-order-context').textContent = currentOrderContext.title;
+
+      if (currentCart.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-slate-500 text-xs">
+            <i class="fa-solid fa-basket-shopping text-3xl mb-2"></i>
+            <p>Selecciona productos del menú para agregar al pedido.</p>
+          </div>`;
+        updateCartTotals(0);
+        return;
+      }
+
+      let subtotal = 0;
+      container.innerHTML = currentCart.map((item, idx) => {
+        const itemTotal = item.precio * item.cantidad;
+        subtotal += itemTotal;
+        return `
+          <div class="bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl space-y-2">
+            <div class="flex justify-between items-start">
+              <span class="font-semibold text-xs text-slate-100">${item.nombre}</span>
+              <span class="font-bold text-xs text-brand-500">$${itemTotal.toFixed(2)}</span>
+            </div>
+            <div class="flex justify-between items-center text-xs">
+              <div class="flex items-center gap-2 bg-slate-900 rounded-lg p-1 border border-slate-800">
+                <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white">-</button>
+                <span class="font-bold px-1">${item.cantidad}</span>
+                <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white">+</button>
+              </div>
+              <input type="text" placeholder="Notas (opcional)" value="${item.notas}" onchange="currentCart[${idx}].notas = this.value" class="bg-slate-900 text-[10px] px-2 py-1 rounded border border-slate-800 w-32 focus:outline-none text-slate-200">
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      updateCartTotals(subtotal);
+    }
+
+    function updateCartTotals(subtotal) {
+      const tax = subtotal * 0.16;
+      const total = subtotal + tax;
+
+      document.getElementById('pos-subtotal').textContent = `$${subtotal.toFixed(2)}`;
+      document.getElementById('pos-tax').textContent = `$${tax.toFixed(2)}`;
+      document.getElementById('pos-total').textContent = `$${total.toFixed(2)}`;
+    }
+
+    async function submitOrderToKitchen() {
+      if (!currentCart.length) return showToast('El carrito está vacío', 'error');
+
+      const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
+      const tax = subtotal * 0.16;
+      const total = subtotal + tax;
+
+      const newOrder = {
+        origen: currentOrderContext.title,
+        tipo: currentOrderContext.type === 'mesa' ? 'mesa' : 'para-llevar',
+        estado: 'pendiente',
+        subtotal: subtotal,
+        impuesto: tax,
+        total: total,
+        created_at: new Date().toISOString()
+      };
+
+      if (supabaseClient) {
+        const { data, error } = await supabaseClient.from('pedidos').insert([newOrder]).select();
+        if (data && data[0]) {
+          const orderId = data[0].id;
+          const details = currentCart.map(item => ({
+            pedido_id: orderId,
+            producto_id: item.id,
+            nombre_producto: item.nombre,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio,
+            notas: item.notas,
+            estacion: item.estacion
+          }));
+          await supabaseClient.from('detalles_pedido').insert(details);
+        }
+      }
+
+      newOrder.id = Date.now();
+      newOrder.detalles = [...currentCart];
+      state.pedidos.push(newOrder);
+
+      showToast('Comanda enviada a Cocina/Barra', 'success');
+      clearPosCart();
+      renderKds();
+    }
+
+    // 2. MÓDULO MESAS
+    function renderMesas() {
+      const container = document.getElementById('mesas-grid');
+      container.innerHTML = state.mesas.map(mesa => {
+        let statusBg = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
+        if (mesa.estado === 'ocupada') statusBg = "bg-rose-500/10 border-rose-500/30 text-rose-400";
+        if (mesa.estado === 'reservada') statusBg = "bg-amber-500/10 border-amber-500/30 text-amber-400";
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-36">
+            <div class="flex justify-between items-start">
+              <span class="font-extrabold text-lg text-slate-100">Mesa ${mesa.numero}</span>
+              <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${statusBg}">${mesa.estado}</span>
+            </div>
+            <div class="text-xs text-slate-400">
+              <p><i class="fa-solid fa-users"></i> Cap: ${mesa.capacidad}</p>
+              <p class="truncate font-medium text-slate-200">${mesa.cliente || 'Sin cliente'}</p>
+            </div>
+            <button onclick="selectMesaForOrder(${mesa.id})" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded-lg text-slate-200 transition">
+              <i class="fa-solid fa-utensils"></i> Abrir / Comanda
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectMesaForOrder(mesaId) {
+      const mesa = state.mesas.find(m => m.id === mesaId);
+      if (mesa) {
+        currentOrderContext = { type: 'mesa', id: mesa.id, title: `Mesa ${mesa.numero}` };
+        mesa.estado = 'ocupada';
+        renderMesas();
+        switchTab('pos');
+        renderCart();
+        showToast(`Comanda iniciada para Mesa ${mesa.numero}`, 'info');
+      }
+    }
+
+    // 3. KDS / COCINA Y BARRA
+    let kdsStationFilter = 'all';
+
+    function filterKdsStation(station) {
+      kdsStationFilter = station;
+      ['all', 'cocina', 'barra'].forEach(s => {
+        const btn = document.getElementById(`kds-filter-${s}`);
+        if (s === station) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-slate-200";
+        }
+      });
+      renderKds();
+    }
+
+    function renderKds() {
+      const container = document.getElementById('kds-cards-container');
+      const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'cancelado');
+
+      if (!activeOrders.length) {
+        container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay comandas pendientes en cocina o barra.</div>`;
+        return;
+      }
+
+      container.innerHTML = activeOrders.map(order => {
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span class="font-bold text-sm text-brand-500">${order.origen}</span>
+              <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
+            </div>
+            <div class="space-y-2 flex-1">
+              ${(order.detalles || []).map(d => `
+                <div class="text-xs flex justify-between">
+                  <span><b class="text-brand-400">${d.cantidad}x</b> ${d.nombre_producto}</span>
+                  <span class="text-[10px] text-slate-500">${d.estacion}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div class="pt-2 border-t border-slate-800 flex gap-2">
+              <button onclick="updateOrderStatus(${order.id}, 'preparacion')" class="w-1/2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs py-2 rounded-lg font-semibold border border-amber-500/30">
+                En Proceso
+              </button>
+              <button onclick="updateOrderStatus(${order.id}, 'listo')" class="w-1/2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs py-2 rounded-lg font-semibold border border-emerald-500/30">
+                ¡Listo!
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateOrderStatus(orderId, status) {
+      const order = state.pedidos.find(p => p.id === orderId);
+      if (order) {
+        order.estado = status;
+        if (supabaseClient) {
+          await supabaseClient.from('pedidos').update({ estado: status }).eq('id', orderId);
+        }
+        renderKds();
+        showToast(`Estado de pedido actualizado a: ${status}`, 'info');
+      }
+    }
+
+    // 4. COBRO / CHECKOUT / CAJA
+    function proceedToCheckout() {
+      if (!currentCart.length) return showToast('El carrito está vacío', 'error');
+      const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
+      const total = subtotal * 1.16;
+
+      document.getElementById('checkout-amount').textContent = `$${total.toFixed(2)}`;
+      document.getElementById('modal-checkout').classList.remove('hidden');
+    }
+
+    function closeCheckoutModal() {
+      document.getElementById('modal-checkout').classList.add('hidden');
+    }
+
+    function calculateChange() {
+      const totalStr = document.getElementById('checkout-amount').textContent.replace('$', '');
+      const total = parseFloat(totalStr) || 0;
+      const given = parseFloat(document.getElementById('checkout-cash-given').value) || 0;
+      const change = Math.max(0, given - total);
+      document.getElementById('checkout-change').textContent = `$${change.toFixed(2)}`;
+    }
+
+    async function confirmPayment() {
+      const totalStr = document.getElementById('checkout-amount').textContent.replace('$', '');
+      const total = parseFloat(totalStr);
+      const method = document.getElementById('checkout-payment-method').value;
+
+      const newOrder = {
+        id: Date.now(),
+        origen: currentOrderContext.title,
+        tipo: 'venta',
+        estado: 'pagado',
+        metodo_pago: method,
+        total: total,
+        created_at: new Date().toISOString()
+      };
+
+      state.pedidos.push(newOrder);
+
+      if (supabaseClient) {
+        await supabaseClient.from('pedidos').insert([newOrder]);
+      }
+
+      showToast('Pago procesado correctamente', 'success');
+      closeCheckoutModal();
+      clearPosCart();
+      renderCaja();
+      renderHistoryTable();
+    }
+
+    function renderCaja() {
+      const paidOrders = state.pedidos.filter(p => p.estado === 'pagado');
+      const totalVentas = paidOrders.reduce((acc, p) => acc + p.total, 0);
+      const totalEfectivo = paidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + p.total, 0);
+      const totalDigital = totalVentas - totalEfectivo;
+
+      document.getElementById('caja-total-ventas').textContent = `$${totalVentas.toFixed(2)}`;
+      document.getElementById('caja-total-efectivo').textContent = `$${totalEfectivo.toFixed(2)}`;
+      document.getElementById('caja-total-digital').textContent = `$${totalDigital.toFixed(2)}`;
+
+      const tbody = document.getElementById('caja-transactions-body');
+      tbody.innerHTML = paidOrders.slice(-5).map(p => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 text-slate-400">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+          <td class="p-3 font-semibold text-slate-200">${p.origen}</td>
+          <td class="p-3 text-slate-300">${p.metodo_pago || 'Efectivo'}</td>
+          <td class="p-3 font-bold text-emerald-400">$${p.total.toFixed(2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // 5. GESTIÓN DE MENÚ / PRODUCTOS
+    function renderMenuTable() {
+      const tbody = document.getElementById('menu-table-body');
+      tbody.innerHTML = state.productos.map(p => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-semibold text-slate-100">${p.nombre}</td>
+          <td class="p-3 text-slate-400">${p.categoria}</td>
+          <td class="p-3 uppercase text-[10px] font-bold text-slate-400">${p.estacion}</td>
+          <td class="p-3 font-bold text-brand-500">$${parseFloat(p.precio).toFixed(2)}</td>
+          <td class="p-3 text-right">
+            <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openProductModal() { document.getElementById('modal-product').classList.remove('hidden'); }
+    function closeProductModal() { document.getElementById('modal-product').classList.add('hidden'); }
+
+    async function saveProduct() {
+      const newProd = {
+        nombre: document.getElementById('prod-name').value,
+        categoria: document.getElementById('prod-category').value,
+        estacion: document.getElementById('prod-station').value,
+        precio: parseFloat(document.getElementById('prod-price').value)
+      };
+
+      if (supabaseClient) {
+        const { data } = await supabaseClient.from('productos').insert([newProd]).select();
+        if (data) newProd.id = data[0].id;
+      } else {
+        newProd.id = Date.now();
+      }
+
+      state.productos.push(newProd);
+      closeProductModal();
+      renderAll();
+      showToast('Producto añadido al catálogo', 'success');
+    }
+
+    async function deleteProduct(id) {
+      state.productos = state.productos.filter(p => p.id !== id);
+      if (supabaseClient) {
+        await supabaseClient.from('productos').delete().eq('id', id);
+      }
+      renderAll();
+      showToast('Producto eliminado', 'info');
+    }
+
+    // 6. OTROS MÓDULOS (Llevar, Reservas, Inventario, Historial)
+    function renderTakeawayTable() {
+      const tbody = document.getElementById('takeaway-table-body');
+      tbody.innerHTML = `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 text-slate-400">#TK-101</td>
+          <td class="p-3 font-semibold text-slate-200">Juan Pérez</td>
+          <td class="p-3 text-slate-400">555-4321</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">Domicilio</span></td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">En Preparación</span></td>
+          <td class="p-3 font-bold text-slate-200">$22.50</td>
+          <td class="p-3 text-right"><button class="text-brand-500 hover:underline">Cobrar</button></td>
+        </tr>
+      `;
+    }
+
+    function renderReservationsTable() {
+      const tbody = document.getElementById('reservations-table-body');
+      tbody.innerHTML = state.reservaciones.map(r => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-semibold text-slate-200">${r.cliente}</td>
+          <td class="p-3 text-slate-400">${r.fecha_hora}</td>
+          <td class="p-3 text-slate-400">${r.personas} personas</td>
+          <td class="p-3 text-brand-500 font-bold">Mesa ${r.mesa_id}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${r.estado}</span></td>
+          <td class="p-3 text-right"><button class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-xmark"></i></button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderInventoryTable() {
+      const tbody = document.getElementById('inventory-table-body');
+      tbody.innerHTML = state.inventario.map(inv => {
+        const isLow = inv.stock_actual <= inv.stock_minimo;
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-3 font-semibold text-slate-100">${inv.insumo}</td>
+            <td class="p-3 text-slate-400">${inv.unidad}</td>
+            <td class="p-3 font-bold text-slate-200">${inv.stock_actual}</td>
+            <td class="p-3 text-slate-400">${inv.stock_minimo}</td>
+            <td class="p-3">
+              ${isLow 
+                ? `<span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold">Stock Bajo</span>`
+                : `<span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Normal</span>`}
+            </td>
+            <td class="p-3 text-right">
+              <button class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-pen"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-table-body');
+      tbody.innerHTML = state.pedidos.map(p => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 text-slate-400">#${p.id}</td>
+          <td class="p-3 text-slate-400">${new Date(p.created_at || Date.now()).toLocaleString()}</td>
+          <td class="p-3 font-semibold text-slate-200">${p.origen}</td>
+          <td class="p-3 text-slate-400">${p.metodo_pago || 'Efectivo'}</td>
+          <td class="p-3 font-bold text-emerald-400">$${(p.total || 0).toFixed(2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // UTILIDAD DE NOTIFICACIONES TOAST
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let bg = "bg-slate-900 border-slate-700 text-slate-100";
+      if (type === 'success') bg = "bg-emerald-950 border-emerald-800 text-emerald-200";
+      if (type === 'error') bg = "bg-rose-950 border-rose-800 text-rose-200";
+
+      toast.className = `p-3 rounded-xl border shadow-xl text-xs flex items-center gap-3 transition transform duration-300 pointer-events-auto ${bg}`;
+      toast.innerHTML = `<span>${message}</span>`;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function copySqlSchema() {
+      const code = document.getElementById('sql-code-block').innerText;
+      navigator.clipboard.writeText(code);
+      showToast('Esquema SQL copiado al portapapeles', 'success');
+    }
+  </script>
+</body>
+</html>
