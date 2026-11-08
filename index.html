@@ -26,7 +26,7 @@
                     <i class="fa-solid fa-utensils text-2xl"></i>
                 </div>
                 <h2 class="text-2xl font-bold text-white">Acceso al Sistema</h2>
-                <p class="text-xs text-gray-400 mt-1">Ingresa tus credenciales para continuar</p>
+                <p class="text-xs text-gray-400 mt-1">Ingresa tu usuario y contraseña</p>
                 <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full text-[11px]">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Base de datos conectada
                 </div>
@@ -34,8 +34,8 @@
             
             <form id="form-login" onsubmit="iniciarSesion(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs text-gray-400 mb-1">Correo Electrónico</label>
-                    <input type="email" id="login-email" required placeholder="usuario@restaurante.com" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    <label class="block text-xs text-gray-400 mb-1">Nombre de Usuario</label>
+                    <input type="text" id="login-username" required placeholder="Ej: admin o mesero1" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Contraseña</label>
@@ -263,12 +263,12 @@
                     </h3>
                     <form id="form-crear-empleado" onsubmit="crearEmpleado(event)" class="space-y-3">
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Nombre Completo</label>
+                            <label class="block text-xs text-gray-400 mb-1">Nombre del Empleado</label>
                             <input type="text" id="emp-nombre" required placeholder="Ej: Carlos Gómez" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-400 mb-1">Correo Electrónico</label>
-                            <input type="email" id="emp-email" required placeholder="empleado@restaurante.com" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <label class="block text-xs text-gray-400 mb-1">Nombre de Usuario (Login)</label>
+                            <input type="text" id="emp-username" required placeholder="Ej: carlos123" class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
                         </div>
                         <div>
                             <label class="block text-xs text-gray-400 mb-1">Contraseña</label>
@@ -312,7 +312,7 @@
         </section>
     </main>
 
-    <!-- JAVASCRIPT PRINCIPAL CON CREDENCIALES INTEGRADAS -->
+    <!-- JAVASCRIPT PRINCIPAL CON INICIO POR USERNAME -->
     <script>
         // CREDENCIALES INTEGRADAS DE SUPABASE
         const supabaseUrl = 'https://izwbgiddufxlunvfkfnl.supabase.co';
@@ -325,6 +325,12 @@
         let carritoPOS = [];
         let comandaMesaSeleccionada = null;
         let productosCache = [];
+
+        // Función auxiliar para convertir username a formato email aceptado por Supabase Auth
+        function formatUserEmail(username) {
+            const cleanUser = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            return `${cleanUser}@restaurante.internal`;
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             verificarSesionActiva();
@@ -346,20 +352,23 @@
         async function iniciarSesion(e) {
             e.preventDefault();
 
-            const email = document.getElementById('login-email').value;
+            const usernameInput = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
             const btn = document.getElementById('btn-login');
 
             btn.disabled = true;
             btn.innerText = "Verificando...";
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            // Convertir username a formato de autenticación interna
+            const internalEmail = formatUserEmail(usernameInput);
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email: internalEmail, password });
 
             btn.disabled = false;
             btn.innerText = "Iniciar Sesión";
 
             if (error) {
-                alert("Error al acceder: " + error.message);
+                alert("Error de acceso: Usuario o contraseña incorrectos.");
                 return;
             }
 
@@ -728,15 +737,17 @@
             if(usuarioActual?.rol !== 'administrador') return alert("Permiso denegado.");
 
             const nombre = document.getElementById('emp-nombre').value.trim();
-            const email = document.getElementById('emp-email').value.trim();
+            const username = document.getElementById('emp-username').value.trim();
             const password = document.getElementById('emp-password').value.trim();
             const rol = document.getElementById('emp-rol').value;
 
+            const internalEmail = formatUserEmail(username);
+
             // 1. Crear usuario en Supabase Auth
-            const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+            const { data: authData, error: authError } = await supabase.auth.signUp({ email: internalEmail, password });
 
             if(authError) {
-                alert("Error al crear credenciales de empleado: " + authError.message);
+                alert("Error al crear usuario de empleado: " + authError.message);
                 return;
             }
 
@@ -751,7 +762,7 @@
                 if(perfilError) {
                     alert("Error al guardar perfil de empleado: " + perfilError.message);
                 } else {
-                    alert(`¡Empleado ${nombre} registrado exitosamente como ${rol.toUpperCase()}!`);
+                    alert(`¡Empleado ${nombre} registrado exitosamente con usuario '${username}' y rol '${rol.toUpperCase()}'!`);
                     document.getElementById('form-crear-empleado').reset();
                     cargarTablaEmpleados();
                 }
