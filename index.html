@@ -312,14 +312,14 @@
         </section>
     </main>
 
-    <!-- JAVASCRIPT PRINCIPAL CON INICIO POR USERNAME -->
+    <!-- JAVASCRIPT PRINCIPAL -->
     <script>
         // CREDENCIALES INTEGRADAS DE SUPABASE
         const supabaseUrl = 'https://izwbgiddufxlunvfkfnl.supabase.co';
         const supabaseKey = 'sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz';
         
-        // Inicializar cliente Supabase inmediatamente
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Inicialización ÚNICA del cliente Supabase
+        var supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let usuarioActual = null;
         let carritoPOS = [];
