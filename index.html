@@ -409,10 +409,10 @@
     </div>
   </div>
 
-  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO -->
+  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO INCORPORADO (BASE64) -->
   <div id="printable-ticket" style="display:none;">
     <div style="text-align: center; margin-bottom: 6px;">
-      <img src="LOGO LA ESQUINA.png" alt="Restaurante La Esquina" style="max-width: 44mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(150%);">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAABkCAYAAACn4o3AAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgemlsbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6</h2>" alt="Restaurante La Esquina" style="max-width: 44mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(200%);">
     </div>
     <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
     <div id="ticket-items" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
@@ -508,7 +508,7 @@
     function handleLogout() {
       currentUser = null;
       localStorage.removeItem('gastrocloud_user');
-      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-modal').classList.add('hidden');
       document.getElementById('login-form').reset();
       showToast('Sesión cerrada correctamente', 'info');
     }
@@ -1089,11 +1089,6 @@
           </tr>
         `;
       }).join('');
-    }
-
-    function openNewUserManagerModal() {
-      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Solo Administrador', 'error');
-      document.getElementById('modal-user').classList.remove('hidden');
     }
 
     function openNewUserModal() {
