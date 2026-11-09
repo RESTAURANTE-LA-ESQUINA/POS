@@ -127,6 +127,9 @@
         <button onclick="switchTab('usuarios')" id="nav-usuarios" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
           <i class="fa-solid fa-users-gear w-5 text-center text-amber-400"></i> Usuarios / Personal
         </button>
+        <button onclick="switchTab('config')" id="nav-config" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-gear w-5 text-center text-orange-400"></i> Configuración
+        </button>
       </nav>
     </div>
 
@@ -315,6 +318,37 @@
       </div>
     </section>
 
+    <!-- CONFIGURACION -->
+    <section id="tab-config" class="tab-content hidden h-full p-6 overflow-y-auto">
+      <div class="max-w-xl mx-auto space-y-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Configuración del Sistema</h2>
+          <p class="text-xs text-slate-400">Personaliza los parámetros globales de la sucursal guardados en Supabase.</p>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <h3 class="font-bold text-sm text-slate-200 border-b border-slate-800 pb-3 flex items-center gap-2">
+            <i class="fa-solid fa-image text-brand-500"></i> Logotipo para Tickets (58mm)
+          </h3>
+
+          <div class="flex flex-col sm:flex-row items-center gap-6">
+            <div id="config-logo-preview" class="w-40 h-28 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
+              <span class="text-xs text-slate-500 text-center">Sin logotipo cargado</span>
+            </div>
+            <div class="flex-1 space-y-3 w-full">
+              <label class="block text-xs font-semibold text-slate-300">Seleccionar nueva imagen de logotipo:</label>
+              <input type="file" id="config-logo-file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500 cursor-pointer">
+              <p class="text-[11px] text-slate-500">Se recomienda una imagen en blanco y negro o alto contraste para optimizar la impresión térmica.</p>
+            </div>
+          </div>
+
+          <button onclick="uploadAndSaveLogo()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar Logotipo en Supabase
+          </button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- MODALES -->
@@ -409,10 +443,10 @@
     </div>
   </div>
 
-  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO INCORPORADO (BASE64) -->
+  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO DINÁMICO DESDE SUPABASE -->
   <div id="printable-ticket" style="display:none;">
-    <div style="text-align: center; margin-bottom: 6px;">
-      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAABkCAYAAACn4o3AAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgemlsbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6</h2>" alt="Restaurante La Esquina" style="max-width: 44mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(200%);">
+    <div id="ticket-logo-container" style="text-align: center; margin-bottom: 6px;">
+      <!-- Se carga dinámicamente desde Supabase -->
     </div>
     <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
     <div id="ticket-items" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
@@ -429,6 +463,7 @@
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
     let mesaActiveOrders = {};
+    let globalLogoBase64 = "";
 
     let state = {
       mesas: [],
@@ -502,6 +537,7 @@
       }
       switchTab('pos');
       fetchAllCloudData();
+      fetchLogoFromSupabase();
       subscribeRealtimeChanges();
     }
 
@@ -535,6 +571,67 @@
       renderAll();
     }
 
+    async function fetchLogoFromSupabase() {
+      if (!supabaseClient) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from('configuracion')
+          .select('valor')
+          .eq('clave', 'logo_base64')
+          .single();
+
+        if (data && data.valor) {
+          globalLogoBase64 = data.valor;
+          const preview = document.getElementById('config-logo-preview');
+          if (preview) {
+            preview.innerHTML = `<img src="${globalLogoBase64}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
+          }
+        }
+      } catch (e) {
+        console.log('No se encontró logotipo guardado previamente.');
+      }
+    }
+
+    async function uploadAndSaveLogo() {
+      if (!currentUser || currentUser.role !== 'Administrador') {
+        return showToast('Solo el Administrador puede modificar la configuración', 'error');
+      }
+
+      const fileInput = document.getElementById('config-logo-file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        return showToast('Selecciona una imagen primero', 'error');
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = async function(event) {
+        const base64String = event.target.result;
+        globalLogoBase64 = base64String;
+
+        // Guardar o actualizar en Supabase (tabla 'configuracion')
+        const { error } = await supabaseClient
+          .from('configuracion')
+          .upsert({ clave: 'logo_base64', valor: base64String }, { onConflict: 'clave' });
+
+        if (error) {
+          // Si la tabla no existe o hay error de permisos, mostrar guía o notificar
+          showToast('Error al guardar en Supabase. Asegúrate de crear la tabla "configuracion".', 'error');
+          console.error(error);
+          return;
+        }
+
+        const preview = document.getElementById('config-logo-preview');
+        if (preview) {
+          preview.innerHTML = `<img src="${base64String}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
+        }
+
+        showToast('¡Logotipo guardado en Supabase con éxito!', 'success');
+      };
+
+      reader.readAsDataURL(file);
+    }
+
     function subscribeRealtimeChanges() {
       if (!supabaseClient) return;
       supabaseClient
@@ -542,6 +639,7 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, () => { fetchLogoFromSupabase(); })
         .subscribe();
     }
 
@@ -941,9 +1039,16 @@
 
     function printTicket(order, items) {
       const ticketEl = document.getElementById('printable-ticket');
+      const logoContainer = document.getElementById('ticket-logo-container');
       const infoDiv = document.getElementById('ticket-info');
       const itemsDiv = document.getElementById('ticket-items');
       const totalsDiv = document.getElementById('ticket-totals');
+
+      if (globalLogoBase64) {
+        logoContainer.innerHTML = `<img src="${globalLogoBase64}" alt="Logotipo" style="width: 46mm; max-width: 46mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(200%);">`;
+      } else {
+        logoContainer.innerHTML = `<div style="font-weight: bold; font-size: 13px;">RESTAURANTE LA ESQUINA</div>`;
+      }
 
       infoDiv.innerHTML = `
         <div style="margin-bottom: 2px;">Ticket #: ${order.id}</div>
