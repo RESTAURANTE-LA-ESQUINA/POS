@@ -125,8 +125,8 @@
           <i class="fa-solid fa-user-shield text-brand-500"></i>
         </div>
         <div class="truncate">
-          <p id="user-display-name" class="text-xs font-bold text-slate-200 truncate">La Esquina</p>
-          <span id="user-display-role" class="text-[10px] text-amber-400 font-semibold block">Administrador</span>
+          <p id="user-display-name" class="text-xs font-bold text-slate-200 truncate">No autenticado</p>
+          <span id="user-display-role" class="text-[10px] text-amber-400 font-semibold block">-</span>
         </div>
       </div>
       <button onclick="handleLogout()" class="p-2 text-rose-400 hover:bg-slate-800 rounded-lg transition" title="Cerrar Sesión">
@@ -272,7 +272,7 @@
       <div class="flex justify-between items-center mb-6">
         <div>
           <h2 class="text-xl font-bold text-slate-100">Gestión de Personal</h2>
-          <p class="text-xs text-slate-400">Panel exclusivo para crear credenciales de empleados.</p>
+          <p class="text-xs text-slate-400">Usuarios sincronizados en Supabase Cloud.</p>
         </div>
         <button onclick="openNewUserModal()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
           <i class="fa-solid fa-user-plus"></i> Crear Nuevo Empleado
@@ -284,14 +284,7 @@
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
             <tr><th class="p-3">Nombre / Usuario</th><th class="p-3">Rol</th><th class="p-3">Estado</th><th class="p-3 text-right">Acciones</th></tr>
           </thead>
-          <tbody id="users-table-body" class="divide-y divide-slate-800">
-            <tr class="hover:bg-slate-800/50">
-              <td class="p-3 font-semibold text-slate-100">La Esquina</td>
-              <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">Administrador</span></td>
-              <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
-              <td class="p-3 text-right text-slate-500">Sistema</td>
-            </tr>
-          </tbody>
+          <tbody id="users-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
       </div>
     </section>
@@ -371,47 +364,54 @@
     const SUPABASE_URL = "https://izwbgiddufxlunvfkfnl.supabase.co"; 
     const SUPABASE_KEY = "sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz";
 
-    // ADMIN MAESTRO HARDCODED
-    const ADMIN_USER = "La Esquina";
-    const ADMIN_PASS = "Coban.2026";
-
     let supabaseClient = null;
     let currentUser = null;
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
-
-    let internalStaff = [];
 
     let state = {
       mesas: [],
       productos: [],
       pedidos: [],
       pedidosDetalles: [],
-      inventario: []
+      inventario: [],
+      usuarios: []
     };
 
     window.onload = function () {
       initSupabase();
     };
 
-    function handleLogin() {
+    function initSupabase() {
+      try {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
+      } catch (err) {
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
+      }
+    }
+
+    // LOGIN VALIDADO DIRECTATE CONTRA TABLA EN SUPABASE
+    async function handleLogin() {
       const userVal = document.getElementById('auth-username').value.trim();
       const passVal = document.getElementById('auth-password').value.trim();
 
-      if (userVal === ADMIN_USER && passVal === ADMIN_PASS) {
-        currentUser = { username: ADMIN_USER, role: 'Administrador' };
-        onSuccessfulAuth();
+      if (!supabaseClient) return showToast('No se puede conectar a Supabase', 'error');
+
+      const { data, error } = await supabaseClient
+        .from('usuarios')
+        .select('*')
+        .eq('username', userVal)
+        .eq('password', passVal)
+        .single();
+
+      if (error || !data) {
+        showToast('Credenciales incorrectas', 'error');
         return;
       }
 
-      const staff = internalStaff.find(s => s.username === userVal && s.pass === passVal);
-      if (staff) {
-        currentUser = { username: staff.username, role: staff.role };
-        onSuccessfulAuth();
-        return;
-      }
-
-      showToast('Credenciales incorrectas', 'error');
+      currentUser = { id: data.id, username: data.username, role: data.role };
+      onSuccessfulAuth();
     }
 
     function onSuccessfulAuth() {
@@ -432,24 +432,16 @@
       showToast('Sesión cerrada correctamente', 'info');
     }
 
-    function initSupabase() {
-      try {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
-      } catch (err) {
-        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
-      }
-    }
-
     async function fetchAllCloudData() {
       if (!supabaseClient) return;
 
-      const [resMesas, resProductos, resPedidos, resDetalles, resInventario] = await Promise.all([
+      const [resMesas, resProductos, resPedidos, resDetalles, resInventario, resUsuarios] = await Promise.all([
         supabaseClient.from('mesas').select('*').order('numero', { ascending: true }),
         supabaseClient.from('productos').select('*').order('nombre', { ascending: true }),
         supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false }),
         supabaseClient.from('detalles_pedido').select('*'),
-        supabaseClient.from('inventario').select('*').order('insumo', { ascending: true })
+        supabaseClient.from('inventario').select('*').order('insumo', { ascending: true }),
+        supabaseClient.from('usuarios').select('*').order('id', { ascending: true })
       ]);
 
       if (resMesas.data) state.mesas = resMesas.data;
@@ -457,6 +449,7 @@
       if (resPedidos.data) state.pedidos = resPedidos.data;
       if (resDetalles.data) state.pedidosDetalles = resDetalles.data;
       if (resInventario.data) state.inventario = resInventario.data;
+      if (resUsuarios.data) state.usuarios = resUsuarios.data;
 
       renderAll();
     }
@@ -848,25 +841,26 @@
       `).join('');
     }
 
+    // RENDERIZADO Y PERSISTENCIA DE USUARIOS DESDE SUPABASE
     function renderStaffTable() {
       const tbody = document.getElementById('users-table-body');
-      tbody.innerHTML = `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 font-semibold text-slate-100">${ADMIN_USER}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">Administrador</span></td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
-          <td class="p-3 text-right text-slate-500">Sistema</td>
-        </tr>
-      ` + internalStaff.map((u, i) => `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 font-semibold text-slate-200">${u.username}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">${u.role}</span></td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
-          <td class="p-3 text-right">
-            <button onclick="removeStaff(${i})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = state.usuarios.map(u => {
+        const isAdmin = u.role === 'Administrador';
+        const roleBadge = isAdmin
+          ? `<span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">${u.role}</span>`
+          : `<span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">${u.role}</span>`;
+
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-3 font-semibold text-slate-100">${u.username}</td>
+            <td class="p-3">${roleBadge}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
+            <td class="p-3 text-right">
+              ${isAdmin ? '<span class="text-slate-500">Sistema</span>' : `<button onclick="removeStaff(${u.id})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function openNewUserModal() {
@@ -880,23 +874,37 @@
       document.getElementById('modal-user').classList.add('hidden');
     }
 
-    function saveNewUser() {
+    async function saveNewUser() {
       const name = document.getElementById('user-new-name').value.trim();
       const pass = document.getElementById('user-new-pass').value.trim();
       const role = document.getElementById('user-new-role').value;
 
       if (!name || !pass) return showToast('Completa todos los campos', 'error');
 
-      internalStaff.push({ username: name, pass: pass, role: role });
+      const { error } = await supabaseClient.from('usuarios').insert([{
+        username: name,
+        password: pass,
+        role: role
+      }]);
+
+      if (error) {
+        showToast('Error al crear el usuario en Supabase (tal vez ya existe)', 'error');
+        return;
+      }
+
       closeNewUserModal();
-      renderStaffTable();
-      showToast(`Empleado ${name} registrado correctamente`, 'success');
+      showToast(`Empleado ${name} guardado en Supabase`, 'success');
+      fetchAllCloudData();
     }
 
-    function removeStaff(idx) {
-      internalStaff.splice(idx, 1);
-      renderStaffTable();
-      showToast('Empleado eliminado', 'info');
+    async function removeStaff(userId) {
+      const { error } = await supabaseClient.from('usuarios').delete().eq('id', userId);
+      if (error) {
+        showToast('Error al eliminar usuario', 'error');
+        return;
+      }
+      showToast('Empleado eliminado de la base de datos', 'info');
+      fetchAllCloudData();
     }
 
     function showToast(message, type = 'info') {
