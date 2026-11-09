@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GastroCloud POS - 100% Supabase Online</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Supabase JS Client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     tailwind.config = {
@@ -16,13 +13,7 @@
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#fff7ed',
-              100: '#ffedd5',
-              500: '#f97316',
-              600: '#ea580c',
-              700: '#c2410c',
-            }
+            brand: { 50: '#fff7ed', 100: '#ffedd5', 500: '#f97316', 600: '#ea580c', 700: '#c2410c' }
           }
         }
       }
@@ -37,7 +28,7 @@
 </head>
 <body class="h-full flex flex-col md:flex-row font-sans overflow-hidden bg-slate-950 text-slate-100">
 
-  <!-- MODAL INICIO DE SESIÓN OBLIGATORIO -->
+  <!-- MODAL LOGIN -->
   <div id="auth-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl">
       <div class="text-center space-y-2">
@@ -71,7 +62,6 @@
     </div>
   </div>
 
-  <!-- TOAST NOTIFICATIONS -->
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -118,7 +108,6 @@
       </nav>
     </div>
 
-    <!-- TARJETA PERFIL & LOGOUT -->
     <div id="user-profile-card" class="p-3 border-t border-slate-800 flex items-center justify-between">
       <div class="flex items-center gap-2 overflow-hidden">
         <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold shrink-0">
@@ -135,10 +124,10 @@
     </div>
   </aside>
 
-  <!-- MAIN CONTENT CONTAINER -->
+  <!-- MAIN CONTENT -->
   <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
 
-    <!-- TAB: POS -->
+    <!-- POS -->
     <section id="tab-pos" class="tab-content hidden h-full flex flex-col md:flex-row overflow-hidden">
       <div class="flex-1 flex flex-col h-full overflow-hidden p-4 border-r border-slate-800">
         <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-2 shrink-0" id="pos-categories"></div>
@@ -183,7 +172,7 @@
       </div>
     </section>
 
-    <!-- TAB: MESAS -->
+    <!-- MESAS -->
     <section id="tab-mesas" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
         <div>
@@ -194,7 +183,7 @@
       <div id="mesas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
     </section>
 
-    <!-- TAB: KDS -->
+    <!-- KDS -->
     <section id="tab-kds" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
       <div class="flex justify-between items-center mb-4 shrink-0">
         <div>
@@ -205,7 +194,7 @@
       <div id="kds-cards-container" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1"></div>
     </section>
 
-    <!-- TAB: CAJA -->
+    <!-- CAJA -->
     <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="max-w-4xl mx-auto space-y-6">
         <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones</h2>
@@ -225,7 +214,7 @@
       </div>
     </section>
 
-    <!-- TAB: MENU -->
+    <!-- MENU -->
     <section id="tab-menu" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl font-bold text-slate-100">Catálogo de Productos</h2>
@@ -241,7 +230,7 @@
       </div>
     </section>
 
-    <!-- TAB: INVENTARIO -->
+    <!-- INVENTARIO -->
     <section id="tab-inventario" class="tab-content hidden h-full p-6 overflow-y-auto">
       <h2 class="text-xl font-bold text-slate-100 mb-6">Inventario e Insumos Cloud</h2>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -254,7 +243,7 @@
       </div>
     </section>
 
-    <!-- TAB: HISTORIAL -->
+    <!-- HISTORIAL -->
     <section id="tab-historial" class="tab-content hidden h-full p-6 overflow-y-auto">
       <h2 class="text-xl font-bold text-slate-100 mb-6">Historial General de Ventas</h2>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -267,7 +256,7 @@
       </div>
     </section>
 
-    <!-- TAB: USUARIOS / PERSONAL -->
+    <!-- USUARIOS -->
     <section id="tab-usuarios" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
         <div>
@@ -291,7 +280,7 @@
 
   </main>
 
-  <!-- MODAL CHECKOUT -->
+  <!-- MODALES -->
   <div id="modal-checkout" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -319,7 +308,6 @@
     </div>
   </div>
 
-  <!-- MODAL NUEVO PRODUCTO -->
   <div id="modal-product" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
       <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Producto</h3>
@@ -339,7 +327,6 @@
     </div>
   </div>
 
-  <!-- MODAL CREAR EMPLEADO -->
   <div id="modal-user" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
       <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Registrar Nuevo Empleado</h3>
@@ -360,7 +347,6 @@
   </div>
 
   <script>
-    // CREDANCIALES DE SUPABASE ONLINE CONFIGURADAS
     const SUPABASE_URL = "https://izwbgiddufxlunvfkfnl.supabase.co"; 
     const SUPABASE_KEY = "sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz";
 
@@ -391,7 +377,6 @@
       }
     }
 
-    // LOGIN VALIDADO DIRECTATE CONTRA TABLA EN SUPABASE
     async function handleLogin() {
       const userVal = document.getElementById('auth-username').value.trim();
       const passVal = document.getElementById('auth-password').value.trim();
@@ -454,11 +439,18 @@
       renderAll();
     }
 
+    // REALTIME REESTRUCTURADO PARA ESCUCHAR CAMBIOS EN PEDIDOS Y DETALLES
     function subscribeRealtimeChanges() {
       if (!supabaseClient) return;
       supabaseClient
-        .channel('public_db_changes')
-        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+        .channel('public_kds_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => {
+          fetchAllCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => {
+          fetchAllCloudData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => {
           fetchAllCloudData();
         })
         .subscribe();
@@ -586,6 +578,7 @@
       document.getElementById('pos-total').textContent = `$${total.toFixed(2)}`;
     }
 
+    // ENVÍO CORREGIDO PARA FORZAR RENDERIZADO INMEDIATO DE KDS
     async function submitOrderToKitchen() {
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
 
@@ -625,7 +618,7 @@
 
       showToast('Comanda guardada en Supabase y enviada a Cocina/KDS', 'success');
       clearPosCart();
-      fetchAllCloudData();
+      await fetchAllCloudData();
     }
 
     function renderMesas() {
@@ -841,7 +834,6 @@
       `).join('');
     }
 
-    // RENDERIZADO Y PERSISTENCIA DE USUARIOS DESDE SUPABASE
     function renderStaffTable() {
       const tbody = document.getElementById('users-table-body');
       tbody.innerHTML = state.usuarios.map(u => {
