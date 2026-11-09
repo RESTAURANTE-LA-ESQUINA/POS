@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - PedidosYa Independiente y PDF</title>
+  <title>GastroCloud POS - PedidosYa y Detalle en PDF</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -100,7 +100,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Control Independiente</span>
+            <span class="text-xs text-brand-500 font-medium">Control de Caja y Turnos</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -303,28 +303,15 @@
           </div>
         </div>
 
-        <!-- Sección Exclusiva PedidosYa (No se mezcla con el local) -->
-        <div class="bg-pink-950/20 border border-pink-500/30 rounded-2xl p-5 space-y-3">
-          <div class="flex justify-between items-center border-b border-pink-500/20 pb-3">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-pink-400 flex items-center gap-2">
-              <i class="fa-solid fa-motorcycle"></i> Resumen Exclusivo PedidosYa
+        <!-- Tarjeta Exclusiva PedidosYa (Sin desglose interno) -->
+        <div class="bg-pink-950/25 border border-pink-500/30 rounded-2xl p-5 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-pink-400 flex items-center gap-2 mb-1">
+              <i class="fa-solid fa-motorcycle"></i> PedidosYa (Total Independiente)
             </h3>
-            <span id="caja-total-pedidosya" class="text-xl font-extrabold text-pink-400">Q0.00</span>
+            <p class="text-xs text-slate-400">Ingresos totales por plataforma de entrega (no suman al local).</p>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div class="bg-slate-900/80 p-3 rounded-xl border border-pink-500/10">
-              <span class="text-slate-400 block mb-1">Efectivo PedidosYa</span>
-              <span id="py-efectivo" class="font-bold text-amber-400 text-sm">Q0.00</span>
-            </div>
-            <div class="bg-slate-900/80 p-3 rounded-xl border border-pink-500/10">
-              <span class="text-slate-400 block mb-1">Tarjeta PedidosYa</span>
-              <span id="py-tarjeta" class="font-bold text-blue-400 text-sm">Q0.00</span>
-            </div>
-            <div class="bg-slate-900/80 p-3 rounded-xl border border-pink-500/10">
-              <span class="text-slate-400 block mb-1">Transferencia PedidosYa</span>
-              <span id="py-transferencia" class="font-bold text-indigo-400 text-sm">Q0.00</span>
-            </div>
-          </div>
+          <span id="caja-total-pedidosya" class="text-3xl font-extrabold text-pink-400">Q0.00</span>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
@@ -561,34 +548,30 @@
     <div style="text-align: center; font-size: 9px; border-top: 1px dashed black; padding-top: 5px;">¡Gracias por su visita!<br>Restaurante La Esquina</div>
   </div>
 
-  <!-- REPORTE PDF OCULTO PARA IMPRESIÓN -->
+  <!-- REPORTE PDF DETALLADO DE CONSUMO -->
   <div id="printable-pdf-report" style="display:none; font-family: Arial, sans-serif; color: black; background: white; padding: 20px;">
     <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
       <h2 style="font-size: 18px; font-weight: bold; margin: 0;">RESTAURANTE LA ESQUINA</h2>
-      <p style="font-size: 12px; color: #555; margin: 2px 0;">Reporte Detallado de Caja y Turno</p>
+      <p style="font-size: 12px; color: #555; margin: 2px 0;">Reporte Detallado de Caja y Consumo por Turno</p>
       <p style="font-size: 10px; color: #777; margin: 0;" id="pdf-report-date"></p>
     </div>
     
-    <div style="margin-bottom: 15px; font-size: 12px;">
-      <p><b>Fondo Inicial de Caja:</b> <span id="pdf-fondo">Q0.00</span></p>
-      <p><b>Total Ventas Local:</b> <span id="pdf-ventas-local">Q0.00</span></p>
-      <p><b>Total PedidosYa (Independiente):</b> <span id="pdf-ventas-py">Q0.00</span></p>
+    <div style="margin-bottom: 15px; font-size: 12px; display: flex; justify-content: space-between;">
+      <div>
+        <p><b>Fondo Inicial:</b> <span id="pdf-fondo">Q0.00</span></p>
+        <p><b>Total Ventas Local:</b> <span id="pdf-ventas-local">Q0.00</span></p>
+      </div>
+      <div>
+        <p><b>Total PedidosYa:</b> <span id="pdf-ventas-py">Q0.00</span></p>
+      </div>
     </div>
 
-    <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 15px;">
-      <thead>
-        <tr style="background-color: #f3f4f6; border-bottom: 1px solid #ddd;">
-          <th style="padding: 6px; text-align: left;">ID</th>
-          <th style="padding: 6px; text-align: left;">Hora</th>
-          <th style="padding: 6px; text-align: left;">Origen</th>
-          <th style="padding: 6px; text-align: left;">Pago</th>
-          <th style="padding: 6px; text-align: right;">Total</th>
-        </tr>
-      </thead>
-      <tbody id="pdf-table-body"></tbody>
-    </table>
+    <div style="margin-top: 15px;">
+      <h3 style="font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">Desglose de Consumo por Transacción</h3>
+      <div id="pdf-items-container"></div>
+    </div>
 
-    <div style="text-align: center; font-size: 10px; color: #666; border-top: 1px solid #ddd; padding-top: 10px;">
+    <div style="text-align: center; font-size: 10px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px;">
       GastroCloud POS - Sistema de Gestión en la Nube
     </div>
   </div>
@@ -1317,35 +1300,24 @@
     function renderCaja() {
       const dayPaidOrders = getFilteredDayOrders();
       
-      // Separamos estrictamente Local de PedidosYa
       const localOrders = dayPaidOrders.filter(p => p.tipo !== 'pedidosya' && p.origen !== 'PedidosYa');
       const pyOrders = dayPaidOrders.filter(p => p.tipo === 'pedidosya' || p.origen === 'PedidosYa');
 
-      // Totales Local
       const totalVentasLocal = localOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const ventasEfectivoLocal = localOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalEfectivoCaja = initialCash + ventasEfectivoLocal;
       const totalTarjetaLocal = localOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalTransferenciaLocal = localOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
-      // Totales Exclusivos PedidosYa
       const totalPedidosYa = pyOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const pyEfectivo = pyOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const pyTarjeta = pyOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const pyTransferencia = pyOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
-      // Actualizar UI Local
       document.getElementById('caja-fondo-inicial').textContent = `Q${initialCash.toFixed(2)}`;
       document.getElementById('caja-total-ventas').textContent = `Q${totalVentasLocal.toFixed(2)}`;
       document.getElementById('caja-total-efectivo').textContent = `Q${totalEfectivoCaja.toFixed(2)}`;
       document.getElementById('caja-total-tarjeta').textContent = `Q${totalTarjetaLocal.toFixed(2)}`;
       document.getElementById('caja-total-transferencia').textContent = `Q${totalTransferenciaLocal.toFixed(2)}`;
 
-      // Actualizar UI PedidosYa
       document.getElementById('caja-total-pedidosya').textContent = `Q${totalPedidosYa.toFixed(2)}`;
-      document.getElementById('py-efectivo').textContent = `Q${pyEfectivo.toFixed(2)}`;
-      document.getElementById('py-tarjeta').textContent = `Q${pyTarjeta.toFixed(2)}`;
-      document.getElementById('py-transferencia').textContent = `Q${pyTransferencia.toFixed(2)}`;
 
       const tbody = document.getElementById('caja-transactions-body');
       if (!tbody) return;
@@ -1380,19 +1352,35 @@
       document.getElementById('pdf-ventas-local').textContent = `Q${totalLocal.toFixed(2)}`;
       document.getElementById('pdf-ventas-py').textContent = `Q${totalPY.toFixed(2)}`;
 
-      const tbodyPDF = document.getElementById('pdf-table-body');
-      tbodyPDF.innerHTML = dayPaidOrders.map(p => `
-        <tr style="border-bottom: 1px solid #eee;">
-          <td style="padding: 6px;">#${p.id}</td>
-          <td style="padding: 6px;">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-          <td style="padding: 6px;">${p.origen}</td>
-          <td style="padding: 6px;">${p.metodo_pago || 'Efectivo'}</td>
-          <td style="padding: 6px; text-align: right; font-weight: bold;">Q${parseFloat(p.total).toFixed(2)}</td>
-        </tr>
-      `).join('');
+      const containerPDF = document.getElementById('pdf-items-container');
+      
+      containerPDF.innerHTML = dayPaidOrders.map(order => {
+        const items = state.pedidosDetalles.filter(d => d.pedido_id === order.id);
+        const orderTime = new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        return `
+          <div style="margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 8px;">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: flex; justify-content: space-between;">
+              <span>Ticket #${order.id} - ${order.origen} (${order.metodo_pago || 'Efectivo'})</span>
+              <span>Hora: ${orderTime}</span>
+            </div>
+            <table style="width: 100%; font-size: 10px; margin-left: 10px;">
+              ${items.map(i => `
+                <tr>
+                  <td style="padding: 2px 0;">${i.cantidad}x ${i.nombre_producto} ${i.notas ? '(' + i.notas + ')' : ''}</td>
+                  <td style="padding: 2px 0; text-align: right;">Q${(i.precio_unitario * i.cantidad).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </table>
+            <div style="font-size: 11px; text-align: right; font-weight: bold; margin-top: 2px;">
+              Total Ticket: Q${parseFloat(order.total).toFixed(2)}
+            </div>
+          </div>
+        `;
+      }).join('');
 
       window.print();
-      showToast('Generando reporte PDF...', 'success');
+      showToast('Generando reporte PDF con el detalle de consumo...', 'success');
     }
 
     function renderMenuTable() {
