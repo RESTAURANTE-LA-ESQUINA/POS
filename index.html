@@ -333,7 +333,7 @@
 
           <div class="flex flex-col sm:flex-row items-center gap-6">
             <div id="config-logo-preview" class="w-40 h-28 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
-              <span class="text-xs text-slate-500 text-center">Sin logotipo cargado</span>
+              <span class="text-xs text-slate-500 text-center">Cargando desde Supabase...</span>
             </div>
             <div class="flex-1 space-y-3 w-full">
               <label class="block text-xs font-semibold text-slate-300">Seleccionar nueva imagen de logotipo:</label>
@@ -443,11 +443,9 @@
     </div>
   </div>
 
-  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO DINÁMICO DESDE SUPABASE -->
+  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM -->
   <div id="printable-ticket" style="display:none;">
-    <div id="ticket-logo-container" style="text-align: center; margin-bottom: 6px;">
-      <!-- Se carga dinámicamente desde Supabase -->
-    </div>
+    <div id="ticket-logo-container" style="text-align: center; margin-bottom: 6px;"></div>
     <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
     <div id="ticket-items" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
     <div id="ticket-totals" style="font-size: 10px; margin-bottom: 8px;"></div>
@@ -588,7 +586,8 @@
           }
         }
       } catch (e) {
-        console.log('No se encontró logotipo guardado previamente.');
+        const preview = document.getElementById('config-logo-preview');
+        if (preview) preview.innerHTML = `<span class="text-xs text-rose-400 text-center">No hay logo guardado</span>`;
       }
     }
 
@@ -609,14 +608,12 @@
         const base64String = event.target.result;
         globalLogoBase64 = base64String;
 
-        // Guardar o actualizar en Supabase (tabla 'configuracion')
         const { error } = await supabaseClient
           .from('configuracion')
           .upsert({ clave: 'logo_base64', valor: base64String }, { onConflict: 'clave' });
 
         if (error) {
-          // Si la tabla no existe o hay error de permisos, mostrar guía o notificar
-          showToast('Error al guardar en Supabase. Asegúrate de crear la tabla "configuracion".', 'error');
+          showToast('Error al guardar en Supabase. Crea la tabla configuracion.', 'error');
           console.error(error);
           return;
         }
@@ -1044,8 +1041,8 @@
       const itemsDiv = document.getElementById('ticket-items');
       const totalsDiv = document.getElementById('ticket-totals');
 
-      if (globalLogoBase64) {
-        logoContainer.innerHTML = `<img src="${globalLogoBase64}" alt="Logotipo" style="width: 46mm; max-width: 46mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(200%);">`;
+      if (globalLogoBase64 && globalLogoBase64.length > 50) {
+        logoContainer.innerHTML = `<img src="${globalLogoBase64}" alt="Logotipo" style="width: 44mm; max-width: 44mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(250%);">`;
       } else {
         logoContainer.innerHTML = `<div style="font-weight: bold; font-size: 13px;">RESTAURANTE LA ESQUINA</div>`;
       }
