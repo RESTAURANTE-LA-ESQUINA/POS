@@ -349,16 +349,27 @@
     </div>
   </div>
 
-  <!-- MODAL AGREGAR MESA -->
+  <!-- MODAL CREAR / EDITAR MESA -->
   <div id="modal-table" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
-      <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Nueva Mesa</h3>
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <h3 id="table-modal-title" class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Nueva Mesa</h3>
       <form onsubmit="event.preventDefault(); saveTable();" class="space-y-3">
-        <input type="number" id="table-number" placeholder="Número de Mesa" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        <input type="number" id="table-capacity" placeholder="Capacidad de Personas" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        <input type="hidden" id="table-edit-id" value="">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Número de Mesa</label>
+          <input type="number" id="table-number" placeholder="Ej: 5" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre / Alias (Opcional)</label>
+          <input type="text" id="table-name" placeholder="Ej: Terraza 1, VIP, Barra Exterior" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Capacidad (Personas)</label>
+          <input type="number" id="table-capacity" placeholder="Ej: 4" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeTableModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 bg-blue-600 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar Mesa</button>
+          <button type="submit" class="w-1/2 bg-blue-600 hover:bg-blue-500 text-white text-xs py-2.5 rounded-xl font-semibold transition">Guardar Mesa</button>
         </div>
       </form>
     </div>
@@ -639,21 +650,35 @@
 
     function renderMesas() {
       const container = document.getElementById('mesas-grid');
+      const isAdmin = currentUser && currentUser.role === 'Administrador';
+
       container.innerHTML = state.mesas.map(mesa => {
         let statusBg = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
         if (mesa.estado === 'ocupada') statusBg = "bg-rose-500/10 border-rose-500/30 text-rose-400";
         if (mesa.estado === 'reservada') statusBg = "bg-amber-500/10 border-amber-500/30 text-amber-400";
 
+        const titleDisplay = mesa.nombre ? `Mesa ${mesa.numero} - ${mesa.nombre}` : `Mesa ${mesa.numero}`;
+
+        const adminActions = isAdmin ? `
+          <div class="flex gap-1">
+            <button onclick="editTable(${mesa.id})" class="p-1 text-slate-400 hover:text-blue-400 transition" title="Editar Mesa"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button onclick="deleteTable(${mesa.id})" class="p-1 text-slate-400 hover:text-rose-400 transition" title="Eliminar Mesa"><i class="fa-solid fa-trash border-slate-800"></i></button>
+          </div>
+        ` : '';
+
         return `
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-36">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between h-40">
             <div class="flex justify-between items-start">
-              <span class="font-extrabold text-lg text-slate-100">Mesa ${mesa.numero}</span>
+              <div class="truncate pr-1">
+                <span class="font-extrabold text-sm text-slate-100 block truncate" title="${titleDisplay}">${titleDisplay}</span>
+              </div>
+              ${adminActions}
+            </div>
+            <div class="flex justify-between items-center my-1">
               <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${statusBg}">${mesa.estado}</span>
+              <span class="text-xs text-slate-400"><i class="fa-solid fa-users"></i> ${mesa.capacidad}</span>
             </div>
-            <div class="text-xs text-slate-400">
-              <p><i class="fa-solid fa-users"></i> Cap: ${mesa.capacidad}</p>
-            </div>
-            <button onclick="selectMesaForOrder(${mesa.id}, ${mesa.numero})" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded-lg text-slate-200 transition">
+            <button onclick="selectMesaForOrder(${mesa.id}, ${mesa.numero}, '${mesa.nombre || ''}')" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded-lg text-slate-200 transition">
               <i class="fa-solid fa-utensils"></i> Abrir / Comanda
             </button>
           </div>
@@ -663,8 +688,28 @@
 
     function openTableModal() {
       if (!currentUser || currentUser.role !== 'Administrador') {
-        return showToast('Solo el Administrador puede agregar mesas', 'error');
+        return showToast('Solo el Administrador puede agregar o editar mesas', 'error');
       }
+      document.getElementById('table-edit-id').value = '';
+      document.getElementById('table-number').value = '';
+      document.getElementById('table-name').value = '';
+      document.getElementById('table-capacity').value = '';
+      document.getElementById('table-modal-title').textContent = 'Agregar Nueva Mesa';
+      document.getElementById('modal-table').classList.remove('hidden');
+    }
+
+    function editTable(mesaId) {
+      if (!currentUser || currentUser.role !== 'Administrador') {
+        return showToast('Solo el Administrador puede editar mesas', 'error');
+      }
+      const mesa = state.mesas.find(m => m.id === mesaId);
+      if (!mesa) return;
+
+      document.getElementById('table-edit-id').value = mesa.id;
+      document.getElementById('table-number').value = mesa.numero;
+      document.getElementById('table-name').value = mesa.nombre || '';
+      document.getElementById('table-capacity').value = mesa.capacidad;
+      document.getElementById('table-modal-title').textContent = `Editar Mesa ${mesa.numero}`;
       document.getElementById('modal-table').classList.remove('hidden');
     }
 
@@ -673,32 +718,65 @@
     }
 
     async function saveTable() {
+      const editId = document.getElementById('table-edit-id').value;
       const num = parseInt(document.getElementById('table-number').value);
+      const name = document.getElementById('table-name').value.trim();
       const cap = parseInt(document.getElementById('table-capacity').value);
 
-      if (!num || !cap) return showToast('Completa todos los campos', 'error');
+      if (!num || !cap) return showToast('Completa los campos obligatorios', 'error');
 
-      const { error } = await supabaseClient.from('mesas').insert([{
-        numero: num,
-        capacidad: cap,
-        estado: 'disponible'
-      }]);
+      if (editId) {
+        // MODIFICAR MESA
+        const { error } = await supabaseClient
+          .from('mesas')
+          .update({ numero: num, nombre: name || null, capacidad: cap })
+          .eq('id', editId);
 
-      if (error) {
-        showToast('Error al crear la mesa en Supabase (tal vez ya existe esa mesa)', 'error');
-        return;
+        if (error) {
+          showToast('Error al actualizar la mesa', 'error');
+          return;
+        }
+        showToast(`Mesa ${num} actualizada correctamente`, 'success');
+      } else {
+        // NUEVA MESA
+        const { error } = await supabaseClient.from('mesas').insert([{
+          numero: num,
+          nombre: name || null,
+          capacidad: cap,
+          estado: 'disponible'
+        }]);
+
+        if (error) {
+          showToast('Error al crear la mesa (tal vez ya existe ese número)', 'error');
+          return;
+        }
+        showToast(`Mesa ${num} guardada en Supabase`, 'success');
       }
 
       closeTableModal();
-      showToast(`Mesa ${num} guardada en Supabase`, 'success');
       fetchAllCloudData();
     }
 
-    function selectMesaForOrder(mesaId, mesaNum) {
-      currentOrderContext = { type: 'mesa', id: mesaId, title: `Mesa ${mesaNum}` };
+    async function deleteTable(mesaId) {
+      if (!currentUser || currentUser.role !== 'Administrador') {
+        return showToast('Solo el Administrador puede eliminar mesas', 'error');
+      }
+
+      const { error } = await supabaseClient.from('mesas').delete().eq('id', mesaId);
+      if (error) {
+        showToast('Error al eliminar la mesa de Supabase', 'error');
+        return;
+      }
+      showToast('Mesa eliminada de la base de datos', 'info');
+      fetchAllCloudData();
+    }
+
+    function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
+      const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
+      currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
       switchTab('pos');
       renderCart();
-      showToast(`Mesa ${mesaNum} seleccionada`, 'info');
+      showToast(`${displayTitle} seleccionada`, 'info');
     }
 
     function renderKds() {
