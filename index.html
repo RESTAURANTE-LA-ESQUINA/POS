@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - PedidosYa y Caja Detallada</title>
+  <title>GastroCloud POS - Apertura de Día y Caja</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,7 +90,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Control de Caja y PedidosYa</span>
+            <span class="text-xs text-brand-500 font-medium">Control de Caja y Operaciones</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -152,7 +152,12 @@
     <!-- POS -->
     <section id="tab-pos" class="tab-content hidden h-full flex flex-col md:flex-row overflow-hidden">
       <div class="flex-1 flex flex-col h-full overflow-hidden p-4 border-r border-slate-800">
-        <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-2 shrink-0" id="pos-categories"></div>
+        <div class="flex items-center justify-between pb-3 mb-2 shrink-0">
+          <div class="flex items-center gap-2 overflow-x-auto" id="pos-categories"></div>
+          <button onclick="openStartDayModal()" id="btn-start-day-top" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-emerald-600/20">
+            <i class="fa-solid fa-sun text-amber-300"></i> <span id="start-day-btn-label">Iniciar Día</span>
+          </button>
+        </div>
         <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1" id="pos-products-grid"></div>
       </div>
 
@@ -249,16 +254,28 @@
     <!-- CAJA -->
     <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="max-w-5xl mx-auto space-y-6">
-        <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones Detalladas</h2>
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones Detalladas</h2>
+            <p id="caja-day-status-label" class="text-xs text-slate-400 mt-0.5">Estado del día: Sin iniciar</p>
+          </div>
+          <button onclick="openStartDayModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
+            <i class="fa-solid fa-sun text-amber-300"></i> Abrir / Iniciar Día
+          </button>
+        </div>
         
         <!-- Tarjetas Resumen -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Fondo Inicial</span>
+            <span id="caja-fondo-inicial" class="text-2xl font-bold text-amber-300">Q0.00</span>
+          </div>
           <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
             <span class="text-xs text-slate-400 block mb-1">Ventas Totales</span>
             <span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">Q0.00</span>
           </div>
           <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <span class="text-xs text-slate-400 block mb-1">Efectivo</span>
+            <span class="text-xs text-slate-400 block mb-1">Efectivo Total</span>
             <span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">Q0.00</span>
           </div>
           <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
@@ -391,6 +408,29 @@
   </main>
 
   <!-- MODALES -->
+  <div id="modal-start-day" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100 flex items-center gap-2">
+          <i class="fa-solid fa-sun text-amber-400"></i> Apertura de Día (Fondo de Caja)
+        </h3>
+        <button onclick="closeStartDayModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 mb-2">Monto inicial en efectivo (Cambio en caja):</label>
+        <div class="relative">
+          <span class="absolute left-3.5 top-3 text-brand-500 font-bold text-sm">Q</span>
+          <input type="number" step="0.01" id="start-day-cash-input" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2">Este monto se registrará como base de efectivo para la jornada actual.</p>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeStartDayModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-medium">Cancelar</button>
+        <button onclick="confirmStartDay()" class="w-1/2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-3 rounded-xl font-bold transition shadow-lg shadow-emerald-600/20">Iniciar Jornada</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal-checkout" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -504,6 +544,9 @@
     let currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
     let mesaActiveOrders = {};
     let globalLogoBase64 = "";
+    let dayStarted = false;
+    let initialCash = 0;
+    let currentDayDate = "";
 
     let state = {
       mesas: [],
@@ -517,6 +560,7 @@
     window.onload = function () {
       initSupabase();
       loadLogoLocallyPreview();
+      checkLocalDayState();
     };
 
     function initSupabase() {
@@ -528,6 +572,70 @@
         document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
         document.getElementById('auth-modal').classList.remove('hidden');
       }
+    }
+
+    function checkLocalDayState() {
+      const todayStr = new Date().toDateString();
+      const savedDay = localStorage.getItem('gastrocloud_day');
+      if (savedDay) {
+        try {
+          const dayData = JSON.parse(savedDay);
+          if (dayData.date === todayStr) {
+            dayStarted = true;
+            initialCash = dayData.cash || 0;
+            currentDayDate = todayStr;
+            updateDayStatusUI();
+          }
+        } catch (e) {
+          localStorage.removeItem('gastrocloud_day');
+        }
+      }
+    }
+
+    function updateDayStatusUI() {
+      const topBtnLabel = document.getElementById('start-day-btn-label');
+      const topBtn = document.getElementById('btn-start-day-top');
+      const statusLabel = document.getElementById('caja-day-status-label');
+      
+      if (dayStarted) {
+        if (topBtnLabel) topBtnLabel.textContent = "Día Iniciado (Q" + initialCash.toFixed(2) + ")";
+        if (topBtn) topBtn.className = "bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0";
+        if (statusLabel) statusLabel.textContent = `Estado: Jornada Activa (Fondo inicial: Q${initialCash.toFixed(2)})`;
+      } else {
+        if (topBtnLabel) topBtnLabel.textContent = "Iniciar Día";
+        if (topBtn) topBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-emerald-600/25";
+        if (statusLabel) statusLabel.textContent = "Estado: Día sin iniciar (Se requiere apertura de caja)";
+      }
+    }
+
+    function openStartDayModal() {
+      document.getElementById('start-day-cash-input').value = initialCash > 0 ? initialCash : '';
+      document.getElementById('modal-start-day').classList.remove('hidden');
+    }
+
+    function closeStartDayModal() {
+      document.getElementById('modal-start-day').classList.add('hidden');
+    }
+
+    function confirmStartDay() {
+      const cashVal = parseFloat(document.getElementById('start-day-cash-input').value);
+      if (isNaN(cashVal) || cashVal < 0) {
+        return showToast('Ingresa un monto válido', 'error');
+      }
+
+      dayStarted = true;
+      initialCash = cashVal;
+      currentDayDate = new Date().toDateString();
+
+      localStorage.setItem('gastrocloud_day', JSON.stringify({
+        date: currentDayDate,
+        cash: initialCash
+      }));
+
+      closeStartDayModal();
+      updateDayStatusUI();
+      renderCaja();
+      showToast(`¡Jornada iniciada con Q${initialCash.toFixed(2)} en caja!`, 'success');
     }
 
     function checkPersistentSession() {
@@ -815,6 +923,11 @@
     }
 
     async function submitOrderToKitchen() {
+      if (!dayStarted) {
+        openStartDayModal();
+        return showToast('Debes iniciar el día (fondo de caja) antes de procesar pedidos.', 'error');
+      }
+
       const nuevosItems = currentCart.filter(item => !item.enviado);
       if (!nuevosItems.length) return showToast('No hay nuevos platillos o bebidas para enviar.', 'error');
 
@@ -1022,6 +1135,10 @@
     }
 
     function proceedToCheckout() {
+      if (!dayStarted) {
+        openStartDayModal();
+        return showToast('Debes iniciar el día antes de realizar cobros.', 'error');
+      }
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
       const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       const total = subtotal * 1.16;
@@ -1139,15 +1256,18 @@
       const paidOrders = state.pedidos.filter(p => p.estado === 'pagado');
       
       const totalVentas = paidOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const totalEfectivo = paidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const ventasEfectivo = paidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalEfectivoCaja = initialCash + ventasEfectivo;
+
       const totalTarjeta = paidOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalTransferencia = paidOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
       const totalLocal = paidOrders.filter(p => p.tipo !== 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalPedidosYa = paidOrders.filter(p => p.tipo === 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
+      document.getElementById('caja-fondo-inicial').textContent = `Q${initialCash.toFixed(2)}`;
       document.getElementById('caja-total-ventas').textContent = `Q${totalVentas.toFixed(2)}`;
-      document.getElementById('caja-total-efectivo').textContent = `Q${totalEfectivo.toFixed(2)}`;
+      document.getElementById('caja-total-efectivo').textContent = `Q${totalEfectivoCaja.toFixed(2)}`;
       document.getElementById('caja-total-tarjeta').textContent = `Q${totalTarjeta.toFixed(2)}`;
       document.getElementById('caja-total-transferencia').textContent = `Q${totalTransferencia.toFixed(2)}`;
 
@@ -1278,11 +1398,6 @@
       if (!name || !pass) return showToast('Completa todos los campos', 'error');
       await supabaseClient.from('usuarios').insert([{ username: name, password: pass, role: role }]);
       closeNewUserModal();
-      fetchAllCloudData();
-    }
-
-    async function removeStaff(userId) {
-      await supabaseClient.from('pedidos').delete().eq('id', userId); // Mantener referencia
       fetchAllCloudData();
     }
 
