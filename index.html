@@ -135,12 +135,25 @@
       </div>
 
       <div class="w-full md:w-96 bg-slate-900 flex flex-col h-full border-t md:border-t-0 border-slate-800 shrink-0">
+        <!-- Selector rápido de tipo de orden (General / Para Llevar / Pedidos Ya) -->
+        <div class="p-3 bg-slate-950 border-b border-slate-800 grid grid-cols-3 gap-1.5">
+          <button onclick="setOrderMode('general')" id="btn-mode-general" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-brand-600 text-white flex items-center justify-center gap-1">
+            <i class="fa-solid fa-store text-xs"></i> General
+          </button>
+          <button onclick="setOrderMode('llevar')" id="btn-mode-llevar" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1">
+            <i class="fa-solid fa-bag-shopping text-xs"></i> Para Llevar
+          </button>
+          <button onclick="setOrderMode('pedidosya')" id="btn-mode-pedidosya" class="px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1 text-pink-400">
+            <i class="fa-solid fa-motorcycle text-xs"></i> Pedidos Ya
+          </button>
+        </div>
+
         <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
           <div>
             <h3 class="font-bold text-slate-100 flex items-center gap-2">
               <i class="fa-solid fa-receipt text-brand-500"></i> Comanda Actual
             </h3>
-            <span id="pos-order-context" class="text-xs text-amber-400 font-medium">Mesa / Cliente General</span>
+            <span id="pos-order-context" class="text-xs text-amber-400 font-medium">Cliente General</span>
           </div>
           <button onclick="clearPosCart()" class="text-xs text-rose-400 hover:text-rose-300 font-medium hover:underline">Vaciar</button>
         </div>
@@ -382,10 +395,9 @@
     let supabaseClient = null;
     let currentUser = null;
     let currentCart = [];
-    let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
+    let currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
     let mesaActiveOrders = {};
 
-    // Variable global de estado declarada correctamente
     let state = {
       mesas: [],
       productos: [],
@@ -510,6 +522,37 @@
       renderInventoryTable();
       renderHistoryTable();
       renderStaffTable();
+    }
+
+    function setOrderMode(mode) {
+      // Remover clases activas de todos los botones de modo
+      ['general', 'llevar', 'pedidosya'].forEach(m => {
+        const btn = document.getElementById(`btn-mode-${m}`);
+        if(btn) {
+          btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
+        }
+      });
+
+      const activeBtn = document.getElementById(`btn-mode-${mode}`);
+      if(activeBtn) {
+        if(mode === 'pedidosya') {
+          activeBtn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-pink-600 text-white flex items-center justify-center gap-1 shadow-lg shadow-pink-600/20";
+        } else {
+          activeBtn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-brand-600 text-white flex items-center justify-center gap-1 shadow-lg shadow-brand-600/20";
+        }
+      }
+
+      if (mode === 'general') {
+        currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
+      } else if (mode === 'llevar') {
+        currentOrderContext = { type: 'llevar', id: null, title: 'Para Llevar' };
+      } else if (mode === 'pedidosya') {
+        currentOrderContext = { type: 'pedidosya', id: null, title: 'Pedidos Ya' };
+      }
+
+      currentCart = [];
+      renderCart();
+      showToast(`Modo cambiado a: ${currentOrderContext.title}`, 'info');
     }
 
     function renderPosProducts(category = 'all') {
@@ -637,7 +680,7 @@
 
       const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
         origen: currentOrderContext.title,
-        tipo: currentOrderContext.type === 'mesa' ? 'mesa' : 'para-llevar',
+        tipo: currentOrderContext.type === 'mesa' ? 'mesa' : currentOrderContext.type,
         estado: 'pendiente',
         subtotal: subtotal,
         impuesto: tax,
@@ -805,6 +848,12 @@
     }
 
     function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
+      // Resetear estilos visuales de botones de modo general/llevar/pedidosya
+      ['general', 'llevar', 'pedidosya'].forEach(m => {
+        const btn = document.getElementById(`btn-mode-${m}`);
+        if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
+      });
+
       const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
       currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
       currentCart = mesaActiveOrders[mesaId] ? [...mesaActiveOrders[mesaId]] : [];
@@ -887,7 +936,7 @@
 
       const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
         origen: currentOrderContext.title,
-        tipo: 'venta',
+        tipo: currentOrderContext.type === 'mesa' ? 'mesa' : currentOrderContext.type,
         estado: 'pagado',
         metodo_pago: method,
         subtotal: subtotal,
