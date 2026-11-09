@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - 100% Supabase Realtime Online</title>
+  <title>GastroCloud POS - 100% Supabase Online</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -29,74 +29,54 @@
     }
   </script>
   <style>
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
   </style>
 </head>
 <body class="h-full flex flex-col md:flex-row font-sans overflow-hidden bg-slate-950 text-slate-100">
 
-  <!-- TOAST NOTIFICATIONS -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
-
-  <!-- MODAL / PANTALLA DE INICIO DE SESIÓN (ÚNICAMENTE LOGIN DE ADMINISTRADOR Y PERSONAL) -->
+  <!-- MODAL INICIO DE SESIÓN OBLIGATORIO -->
   <div id="auth-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-8 space-y-6 shadow-2xl">
       <div class="text-center space-y-2">
-        <div class="w-12 h-12 bg-brand-600 rounded-2xl flex items-center justify-center mx-auto text-white text-xl font-bold shadow-lg shadow-brand-600/30">
-          <i class="fa-solid fa-utensils"></i>
+        <div class="inline-flex p-4 bg-brand-600/10 text-brand-500 rounded-2xl mb-2">
+          <i class="fa-solid fa-utensils text-4xl"></i>
         </div>
-        <h2 class="text-2xl font-bold text-slate-100">Iniciar Sesión</h2>
-        <p class="text-xs text-slate-400">Ingresa con las credenciales de administrador o personal autorizado</p>
+        <h2 class="text-2xl font-black text-slate-100 tracking-tight">GastroCloud POS</h2>
+        <p class="text-xs text-slate-400">Acceso al Sistema de Gestión de Restaurante</p>
       </div>
 
-      <form id="auth-form" onsubmit="event.preventDefault(); handleAuthSubmit();" class="space-y-4">
+      <form id="login-form" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Usuario / Correo Electrónico</label>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Usuario / Email</label>
           <div class="relative">
             <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-500 text-xs"></i>
-            <input type="text" id="auth-email" required placeholder="la esquina" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <input type="text" id="auth-username" required placeholder="Ingresa tu usuario" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
-          <span class="text-[10px] text-slate-500 mt-1 block">Administrador por defecto: <b class="text-brand-400">la esquina</b></span>
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña</label>
           <div class="relative">
             <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-500 text-xs"></i>
-            <input type="password" id="auth-password" required placeholder="coban.2026" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-100 focus:ring-2 focus:ring-brand-500 focus:outline-none">
+            <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
-          <span class="text-[10px] text-slate-500 mt-1 block">Contraseña por defecto: <b class="text-brand-400">coban.2026</b></span>
         </div>
 
-        <button type="submit" id="auth-submit-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-3 rounded-xl text-sm transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
+        <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
           <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
         </button>
       </form>
-
-      <div class="pt-3 border-t border-slate-800 text-center">
-        <p class="text-[11px] text-slate-500">
-          <i class="fa-solid fa-shield-halved text-amber-500"></i> El autoregistro público está desactivado. La creación de usuarios debe ser realizada por el Administrador.
-        </p>
-      </div>
     </div>
   </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
 
   <!-- SIDEBAR NAVIGATION -->
   <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 h-auto md:h-full z-20">
     <div>
-      <!-- Brand Header -->
       <div class="p-4 border-b border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 bg-brand-600 rounded-xl text-white font-bold">
@@ -104,15 +84,13 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Supabase POS Realtime</span>
+            <span class="text-xs text-brand-500 font-medium">Supabase POS Cloud</span>
           </div>
         </div>
-        <!-- Status Indicator -->
-        <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-amber-500 inline-block animate-pulse" title="Estado Conexión Supabase"></span>
+        <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
       </div>
 
-      <!-- Navigation Menu -->
-      <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-250px)]">
+      <nav class="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-160px)]">
         <button onclick="switchTab('pos')" id="nav-pos" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
           <i class="fa-solid fa-cash-register w-5 text-center text-brand-500"></i> Pedido (POS)
         </button>
@@ -134,31 +112,25 @@
         <button onclick="switchTab('historial')" id="nav-historial" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
           <i class="fa-solid fa-clock-rotate-left w-5 text-center text-sky-400"></i> Historial
         </button>
-        <!-- Pestaña de Gestión de Usuarios exclusiva del Administrador -->
         <button onclick="switchTab('usuarios')" id="nav-usuarios" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
-          <i class="fa-solid fa-users-gear w-5 text-center text-emerald-400"></i> Usuarios / Personal
+          <i class="fa-solid fa-users-gear w-5 text-center text-amber-400"></i> Usuarios / Personal
         </button>
       </nav>
     </div>
 
-    <!-- Bottom Actions: User Profile, Config & SQL Setup -->
-    <div class="p-3 border-t border-slate-800 space-y-2">
-      <!-- Active User Status & Logout -->
-      <div id="user-profile-card" class="hidden p-2.5 bg-slate-800/60 rounded-xl border border-slate-700/50 flex items-center justify-between">
-        <div class="overflow-hidden pr-2">
-          <span class="block text-[10px] text-slate-400 font-semibold uppercase">Usuario Activo</span>
-          <span id="user-email-display" class="block text-xs font-bold text-slate-200 truncate">la esquina</span>
+    <!-- TARJETA PERFIL & LOGOUT -->
+    <div id="user-profile-card" class="p-3 border-t border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2 overflow-hidden">
+        <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold shrink-0">
+          <i class="fa-solid fa-user-shield text-brand-500"></i>
         </div>
-        <button onclick="handleSignOut()" title="Cerrar Sesión" class="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg text-xs transition border border-rose-500/20 shrink-0">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </button>
+        <div class="truncate">
+          <p id="user-display-name" class="text-xs font-bold text-slate-200 truncate">La Esquina</p>
+          <span id="user-display-role" class="text-[10px] text-amber-400 font-semibold block">Administrador</span>
+        </div>
       </div>
-
-      <button onclick="switchTab('config')" id="nav-config" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
-        <i class="fa-solid fa-gear w-5 text-center text-slate-400"></i> Credenciales Cloud
-      </button>
-      <button onclick="switchTab('ayuda-sql')" id="nav-ayuda-sql" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
-        <i class="fa-solid fa-database w-5 text-center text-amber-500"></i> Script SQL Inicial
+      <button onclick="handleLogout()" class="p-2 text-rose-400 hover:bg-slate-800 rounded-lg transition" title="Cerrar Sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
       </button>
     </div>
   </aside>
@@ -166,59 +138,13 @@
   <!-- MAIN CONTENT CONTAINER -->
   <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950">
 
-    <!-- TAB: CONFIGURACIÓN SUPABASE CLOUD -->
-    <section id="tab-config" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <div class="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div class="flex items-center gap-4 mb-6">
-          <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
-            <i class="fa-solid fa-cloud text-2xl"></i>
-          </div>
-          <div>
-            <h2 class="text-xl font-bold text-slate-100">Conexión a Supabase Cloud</h2>
-            <p class="text-xs text-slate-400">Sincronización en tiempo real directo con la base de datos remota sin almacenamiento local.</p>
-          </div>
-        </div>
-
-        <form id="supabase-config-form" onsubmit="event.preventDefault(); setupSupabaseCredentials();" class="space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Project URL</label>
-            <input type="text" id="supabase-url" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none text-slate-100">
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Anon / Public API Key</label>
-            <input type="password" id="supabase-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none text-slate-100">
-          </div>
-          <div class="pt-4 flex items-center justify-between border-t border-slate-800">
-            <div id="connection-status-msg" class="text-xs text-slate-400 flex items-center gap-2">
-              <i class="fa-solid fa-circle-question"></i> No inicializado
-            </div>
-            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/20">
-              <i class="fa-solid fa-bolt"></i> Conectar en Tiempo Real
-            </button>
-          </div>
-        </form>
-
-        <div class="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-          <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-shield-halved"></i> Modo 100% Online Habilitado</h4>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            No se usa <code>localStorage</code> ni <code>sessionStorage</code> para guardar pedidos, inventario o transacciones. Todas las consultas e inserciones van directamente a la API REST y a los WebSockets de Supabase Cloud.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB: POS (TOMA DE COMMANDAS) -->
+    <!-- TAB: POS -->
     <section id="tab-pos" class="tab-content hidden h-full flex flex-col md:flex-row overflow-hidden">
-      <!-- Izquierda: Catálogo de Productos -->
       <div class="flex-1 flex flex-col h-full overflow-hidden p-4 border-r border-slate-800">
-        <!-- Categorías bar -->
         <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-2 shrink-0" id="pos-categories"></div>
-
-        <!-- Grid de Productos -->
         <div class="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 p-1" id="pos-products-grid"></div>
       </div>
 
-      <!-- Derecha: Comanda / Ticket Activo -->
       <div class="w-full md:w-96 bg-slate-900 flex flex-col h-full border-t md:border-t-0 border-slate-800 shrink-0">
         <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
           <div>
@@ -264,26 +190,16 @@
           <h2 class="text-xl font-bold text-slate-100">Mapa Interactivo de Mesas</h2>
           <p class="text-xs text-slate-400">Sincronización en tiempo real desde Supabase Cloud.</p>
         </div>
-        <button onclick="openAddTableModal()" class="bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-          <i class="fa-solid fa-plus"></i> Nueva Mesa
-        </button>
       </div>
-
-      <div class="flex gap-4 mb-6 bg-slate-900 p-3 rounded-xl border border-slate-800 w-fit text-xs">
-        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Disponible</div>
-        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Ocupada</div>
-        <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Reservada</div>
-      </div>
-
       <div id="mesas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
     </section>
 
-    <!-- TAB: KDS (COCINA Y BARRA) -->
+    <!-- TAB: KDS -->
     <section id="tab-kds" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
       <div class="flex justify-between items-center mb-4 shrink-0">
         <div>
           <h2 class="text-xl font-bold text-slate-100">Pantalla de Cocina / Barra (KDS)</h2>
-          <p class="text-xs text-slate-400">Comandas recibidas instantáneamente mediante Supabase Realtime.</p>
+          <p class="text-xs text-slate-400">Actualización en vivo de comanda enviada.</p>
         </div>
       </div>
       <div id="kds-cards-container" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1"></div>
@@ -292,38 +208,16 @@
     <!-- TAB: CAJA -->
     <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="max-w-4xl mx-auto space-y-6">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="text-xl font-bold text-slate-100">Caja y Arqueo Cloud</h2>
-            <p class="text-xs text-slate-400">Ventas en vivo procesadas en el servidor.</p>
-          </div>
-        </div>
-
+        <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <span class="text-xs text-slate-400 block mb-1">Ventas Totales</span>
-            <span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">$0.00</span>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <span class="text-xs text-slate-400 block mb-1">Efectivo en Caja</span>
-            <span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">$0.00</span>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-            <span class="text-xs text-slate-400 block mb-1">Tarjeta / Transferencia</span>
-            <span id="caja-total-digital" class="text-2xl font-bold text-blue-400">$0.00</span>
-          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Ventas Totales</span><span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">$0.00</span></div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Efectivo en Caja</span><span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">$0.00</span></div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Tarjeta / Transferencia</span><span id="caja-total-digital" class="text-2xl font-bold text-blue-400">$0.00</span></div>
         </div>
-
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-          <div class="p-4 border-b border-slate-800 font-bold text-sm text-slate-200">Últimas Transacciones Registradas</div>
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-              <tr>
-                <th class="p-3">Hora</th>
-                <th class="p-3">Origen</th>
-                <th class="p-3">Método Pago</th>
-                <th class="p-3">Monto</th>
-              </tr>
+              <tr><th class="p-3">Hora</th><th class="p-3">Origen</th><th class="p-3">Método Pago</th><th class="p-3">Monto</th></tr>
             </thead>
             <tbody id="caja-transactions-body" class="divide-y divide-slate-800"></tbody>
           </table>
@@ -331,28 +225,16 @@
       </div>
     </section>
 
-    <!-- TAB: MENU / PRODUCTOS -->
+    <!-- TAB: MENU -->
     <section id="tab-menu" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-xl font-bold text-slate-100">Catálogo de Productos en la Nube</h2>
-          <p class="text-xs text-slate-400">Modificaciones guardadas directamente en Supabase.</p>
-        </div>
-        <button onclick="openProductModal()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-          <i class="fa-solid fa-plus"></i> Nuevo Producto
-        </button>
+        <h2 class="text-xl font-bold text-slate-100">Catálogo de Productos</h2>
+        <button onclick="openProductModal()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
       </div>
-
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr>
-              <th class="p-3">Nombre</th>
-              <th class="p-3">Categoría</th>
-              <th class="p-3">Estación KDS</th>
-              <th class="p-3">Precio</th>
-              <th class="p-3 text-right">Acciones</th>
-            </tr>
+            <tr><th class="p-3">Nombre</th><th class="p-3">Categoría</th><th class="p-3">Estación</th><th class="p-3">Precio</th><th class="p-3 text-right">Acciones</th></tr>
           </thead>
           <tbody id="menu-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
@@ -361,26 +243,11 @@
 
     <!-- TAB: INVENTARIO -->
     <section id="tab-inventario" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-xl font-bold text-slate-100">Control de Inventario</h2>
-          <p class="text-xs text-slate-400">Stock de insumos en tiempo real.</p>
-        </div>
-        <button onclick="openInventoryModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
-          <i class="fa-solid fa-plus"></i> Agregar Insumo
-        </button>
-      </div>
-
+      <h2 class="text-xl font-bold text-slate-100 mb-6">Inventario e Insumos Cloud</h2>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr>
-              <th class="p-3">Insumo</th>
-              <th class="p-3">Unidad</th>
-              <th class="p-3">Stock Actual</th>
-              <th class="p-3">Stock Mínimo</th>
-              <th class="p-3">Estado</th>
-            </tr>
+            <tr><th class="p-3">Insumo</th><th class="p-3">Unidad</th><th class="p-3">Stock Actual</th><th class="p-3">Stock Mínimo</th><th class="p-3">Estado</th></tr>
           </thead>
           <tbody id="inventory-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
@@ -389,201 +256,49 @@
 
     <!-- TAB: HISTORIAL -->
     <section id="tab-historial" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <div class="flex justify-between items-center mb-6">
-        <div>
-          <h2 class="text-xl font-bold text-slate-100">Historial General de Ventas</h2>
-          <p class="text-xs text-slate-400">Registro completo almacenado en PostgreSQL Cloud.</p>
-        </div>
-      </div>
-
+      <h2 class="text-xl font-bold text-slate-100 mb-6">Historial General de Ventas</h2>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr>
-              <th class="p-3">ID Pedido</th>
-              <th class="p-3">Fecha / Hora</th>
-              <th class="p-3">Origen</th>
-              <th class="p-3">Método Pago</th>
-              <th class="p-3">Total</th>
-            </tr>
+            <tr><th class="p-3">ID Pedido</th><th class="p-3">Fecha / Hora</th><th class="p-3">Origen</th><th class="p-3">Método Pago</th><th class="p-3">Total</th></tr>
           </thead>
           <tbody id="history-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- TAB: GESTIÓN DE USUARIOS / PERSONAL (EXCLUSIVO ADMINISTRADOR) -->
+    <!-- TAB: USUARIOS / PERSONAL -->
     <section id="tab-usuarios" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
         <div>
-          <h2 class="text-xl font-bold text-slate-100">Gestión de Usuarios y Personal</h2>
-          <p class="text-xs text-slate-400">Creación exclusiva por el Administrador (la esquina).</p>
+          <h2 class="text-xl font-bold text-slate-100">Gestión de Personal</h2>
+          <p class="text-xs text-slate-400">Panel exclusivo para crear credenciales de empleados.</p>
         </div>
-        <button onclick="openNewUserModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-600/20">
-          <i class="fa-solid fa-user-plus"></i> Registrar Nuevo Usuario
+        <button onclick="openNewUserModal()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-user-plus"></i> Crear Nuevo Empleado
         </button>
       </div>
 
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr>
-              <th class="p-3">Usuario / Email</th>
-              <th class="p-3">Rol</th>
-              <th class="p-3">Estado</th>
-              <th class="p-3 text-right">Acciones</th>
-            </tr>
+            <tr><th class="p-3">Nombre / Usuario</th><th class="p-3">Rol</th><th class="p-3">Estado</th><th class="p-3 text-right">Acciones</th></tr>
           </thead>
           <tbody id="users-table-body" class="divide-y divide-slate-800">
-            <!-- Carga dinámica -->
+            <tr class="hover:bg-slate-800/50">
+              <td class="p-3 font-semibold text-slate-100">La Esquina</td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">Administrador</span></td>
+              <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
+              <td class="p-3 text-right text-slate-500">Sistema</td>
+            </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- TAB: SCRIPT SQL SUPABASE -->
-    <section id="tab-ayuda-sql" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <div class="max-w-4xl mx-auto space-y-4">
-        <div>
-          <h2 class="text-xl font-bold text-slate-100">Esquema SQL para Supabase</h2>
-          <p class="text-xs text-slate-400">Ejecuta esto en el <b>SQL Editor</b> de tu panel de Supabase para inicializar las tablas y políticas de seguridad.</p>
-        </div>
-
-        <div class="relative bg-slate-900 border border-slate-800 rounded-2xl p-4 font-mono text-xs text-emerald-400 overflow-x-auto">
-          <button onclick="copySqlSchema()" class="absolute top-4 right-4 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-sans transition border border-slate-700">
-            <i class="fa-solid fa-copy"></i> Copiar SQL Script
-          </button>
-          <pre id="sql-code-block">
--- 1. CREACIÓN DE TABLAS
-CREATE TABLE IF NOT EXISTS mesas (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  numero INT NOT NULL UNIQUE,
-  capacidad INT DEFAULT 4,
-  estado TEXT DEFAULT 'disponible' CHECK (estado IN ('disponible', 'ocupada', 'reservada')),
-  cliente TEXT DEFAULT NULL
-);
-
-CREATE TABLE IF NOT EXISTS productos (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  nombre TEXT NOT NULL,
-  categoria TEXT NOT NULL,
-  estacion TEXT CHECK (estacion IN ('cocina', 'barra')),
-  precio NUMERIC(10,2) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS pedidos (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  origen TEXT NOT NULL,
-  tipo TEXT CHECK (tipo IN ('mesa', 'para-llevar', 'domicilio', 'venta')),
-  estado TEXT DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'preparacion', 'listo', 'pagado', 'cancelado')),
-  metodo_pago TEXT DEFAULT NULL,
-  subtotal NUMERIC(10,2) DEFAULT 0,
-  impuesto NUMERIC(10,2) DEFAULT 0,
-  total NUMERIC(10,2) DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS detalles_pedido (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  pedido_id BIGINT REFERENCES pedidos(id) ON DELETE CASCADE,
-  producto_id BIGINT REFERENCES productos(id),
-  nombre_producto TEXT NOT NULL,
-  cantidad INT NOT NULL,
-  precio_unitario NUMERIC(10,2) NOT NULL,
-  notas TEXT DEFAULT '',
-  estacion TEXT CHECK (estacion IN ('cocina', 'barra'))
-);
-
-CREATE TABLE IF NOT EXISTS inventario (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  insumo TEXT NOT NULL,
-  unidad TEXT NOT NULL,
-  stock_actual NUMERIC(10,2) DEFAULT 0,
-  stock_minimo NUMERIC(10,2) DEFAULT 5
-);
-
-CREATE TABLE IF NOT EXISTS personal_usuarios (
-  id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT UNIQUE NOT NULL,
-  rol TEXT CHECK (rol IN ('administrador', 'cajero', 'mesero', 'cocinero')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. HABILITAR RLS Y POLITICAS PUBLICAS (PERMITIR ACCESO CON ANON KEY)
-ALTER TABLE mesas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE productos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE detalles_pedido ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inventario ENABLE ROW LEVEL SECURITY;
-ALTER TABLE personal_usuarios ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Mesas Public" ON mesas FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Productos Public" ON productos FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Pedidos Public" ON pedidos FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Detalles Public" ON detalles_pedido FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Inventario Public" ON inventario FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Personal Public" ON personal_usuarios FOR ALL USING (true) WITH CHECK (true);
-
--- 3. DATOS SEMILLA
-INSERT INTO personal_usuarios (username, email, rol) VALUES ('la esquina', 'laesquina@gastrocloud.com', 'administrador') ON CONFLICT DO NOTHING;
-INSERT INTO mesas (numero, capacidad, estado) VALUES (1, 4, 'disponible'), (2, 2, 'disponible'), (3, 6, 'disponible'), (4, 4, 'disponible') ON CONFLICT DO NOTHING;
-
-INSERT INTO productos (nombre, categoria, estacion, precio) VALUES 
-('Hamburguesa Clásica', 'Comidas', 'cocina', 12.50),
-('Tacos al Pastor', 'Comidas', 'cocina', 10.00),
-('Pizza Margherita', 'Comidas', 'cocina', 15.00),
-('Margarita Coctel', 'Bebidas', 'barra', 8.50),
-('Cerveza Artesanal', 'Bebidas', 'barra', 5.00),
-('Pastel de Chocolate', 'Postres', 'barra', 6.00);
-
-INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES 
-('Carne de Res', 'Kg', 15.5, 5.0),
-('Queso Mozzarella', 'Kg', 8.0, 3.0),
-('Cerveza Barril', 'Litros', 40.0, 10.0);
-          </pre>
-        </div>
-      </div>
-    </section>
-
   </main>
 
-  <!-- MODALES DE ACCIÓN -->
-
-  <!-- Modal Crear Usuario Personal (Administrador) -->
-  <div id="modal-user" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-slate-100">Crear Usuario de Personal</h3>
-        <button onclick="closeNewUserModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form onsubmit="event.preventDefault(); saveNewUser();" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre de Usuario / Correo</label>
-          <input type="text" id="newuser-username" required placeholder="cajero1 o correo@restaurante.com" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña de Acceso</label>
-          <input type="password" id="newuser-password" required placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Rol de Acceso</label>
-          <select id="newuser-rol" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-            <option value="cajero">Cajero / POS</option>
-            <option value="mesero">Mesero / Sala</option>
-            <option value="cocinero">Cocinero / KDS</option>
-            <option value="administrador">Administrador</option>
-          </select>
-        </div>
-        <div class="flex gap-2 pt-2">
-          <button type="button" onclick="closeNewUserModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-2.5 rounded-xl font-semibold">Registrar Usuario</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal Checkout / Cobro -->
+  <!-- MODAL CHECKOUT -->
   <div id="modal-checkout" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
@@ -591,151 +306,171 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
         <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div>
-        <span class="text-xs text-slate-400">Monto Total a Pagar</span>
+        <span class="text-xs text-slate-400">Total a Pagar</span>
         <div id="checkout-amount" class="text-3xl font-extrabold text-brand-500 mb-4">$0.00</div>
-
-        <label class="block text-xs font-semibold text-slate-300 mb-1">Método de Pago</label>
         <select id="checkout-payment-method" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 mb-3">
           <option value="Efectivo">Efectivo</option>
-          <option value="Tarjeta">Tarjeta de Crédito / Débito</option>
-          <option value="Transferencia">Transferencia Bancaria</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Transferencia">Transferencia</option>
         </select>
-
-        <label class="block text-xs font-semibold text-slate-300 mb-1">Monto Entregado (Efectivo)</label>
-        <input type="number" step="0.01" id="checkout-cash-given" oninput="calculateChange()" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 mb-3">
-
+        <input type="number" step="0.01" id="checkout-cash-given" oninput="calculateChange()" placeholder="Efectivo entregado (0.00)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 mb-3">
         <div class="flex justify-between items-center p-3 bg-slate-800/50 rounded-xl text-xs">
-          <span class="text-slate-400">Cambio a devolver:</span>
+          <span class="text-slate-400">Cambio:</span>
           <span id="checkout-change" class="font-bold text-emerald-400 text-sm">$0.00</span>
         </div>
       </div>
-
-      <div class="flex gap-2 pt-2">
-        <button onclick="closeCheckoutModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-semibold">Cancelar</button>
-        <button onclick="confirmPayment()" class="w-1/2 bg-brand-600 hover:bg-brand-500 text-white text-xs py-3 rounded-xl font-semibold shadow-lg shadow-brand-600/20">Confirmar Pago</button>
+      <div class="flex gap-2">
+        <button onclick="closeCheckoutModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl">Cancelar</button>
+        <button onclick="confirmPayment()" class="w-1/2 bg-brand-600 text-white text-xs py-3 rounded-xl font-semibold">Confirmar Pago</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal Agregar Producto -->
+  <!-- MODAL NUEVO PRODUCTO -->
   <div id="modal-product" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-slate-100">Nuevo Producto</h3>
-        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
-      </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
+      <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Producto</h3>
       <form onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre</label>
-          <input type="text" id="prod-name" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Categoría</label>
-          <input type="text" id="prod-category" placeholder="Comidas, Bebidas, etc." required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Estación KDS</label>
-          <select id="prod-station" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-            <option value="cocina">Cocina</option>
-            <option value="barra">Barra</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Precio ($)</label>
-          <input type="number" step="0.01" id="prod-price" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
+        <input type="text" id="prod-name" placeholder="Nombre del Producto" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        <input type="text" id="prod-category" placeholder="Categoría (Comidas, Bebidas, etc)" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        <select id="prod-station" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+          <option value="cocina">Cocina</option>
+          <option value="barra">Barra</option>
+        </select>
+        <input type="number" step="0.01" id="prod-price" placeholder="Precio ($)" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeProductModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 bg-teal-600 hover:bg-teal-500 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar en Supabase</button>
+          <button type="submit" class="w-1/2 bg-teal-600 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal Agregar Mesa -->
-  <div id="modal-table" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-slate-100">Agregar Nueva Mesa</h3>
-        <button onclick="closeAddTableModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form onsubmit="event.preventDefault(); saveTable();" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Número de Mesa</label>
-          <input type="number" id="table-number" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Capacidad (Personas)</label>
-          <input type="number" id="table-capacity" value="4" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
+  <!-- MODAL CREAR EMPLEADO -->
+  <div id="modal-user" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4">
+      <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Registrar Nuevo Empleado</h3>
+      <form onsubmit="event.preventDefault(); saveNewUser();" class="space-y-3">
+        <input type="text" id="user-new-name" placeholder="Nombre / Usuario Empleado" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        <input type="password" id="user-new-pass" placeholder="Contraseña de Acceso" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        <select id="user-new-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+          <option value="Cajero">Cajero</option>
+          <option value="Mesero">Mesero</option>
+          <option value="Cocinero">Cocinero</option>
+        </select>
         <div class="flex gap-2 pt-2">
-          <button type="button" onclick="closeAddTableModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 bg-brand-600 hover:bg-brand-500 text-white text-xs py-2.5 rounded-xl font-semibold">Crear Mesa</button>
+          <button type="button" onclick="closeNewUserModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
+          <button type="submit" class="w-1/2 bg-amber-600 text-white text-xs py-2.5 rounded-xl font-semibold">Registrar</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal Agregar Insumo -->
-  <div id="modal-inventory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-slate-100">Nuevo Insumo</h3>
-        <button onclick="closeInventoryModal()" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <form onsubmit="event.preventDefault(); saveInventory();" class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Insumo</label>
-          <input type="text" id="inv-insumo" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Unidad (Kg, Litros, Pzas)</label>
-          <input type="text" id="inv-unidad" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Actual</label>
-          <input type="number" step="0.01" id="inv-stock-actual" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Mínimo Alerta</label>
-          <input type="number" step="0.01" id="inv-stock-min" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        </div>
-        <div class="flex gap-2 pt-2">
-          <button type="button" onclick="closeInventoryModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
-          <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- JAVASCRIPT LOGIC DIRECT SUPABASE INTEGRATION -->
   <script>
-    // CREDANCIALES MAESTRAS Y ESTADO GLOBAL
-    const ADMIN_USER_DEFAULT = "la esquina";
-    const ADMIN_EMAIL_DEFAULT = "laesquina@gastrocloud.com";
-    const ADMIN_PASS_DEFAULT = "coban.2026";
+    // CREDANCIALES DE SUPABASE ONLINE CONFIGURADAS
+    const SUPABASE_URL = "https://izwbgiddufxlunvfkfnl.supabase.co"; 
+    const SUPABASE_KEY = "sb_publishable_ADrc2IrDoN1EnoU7bEDMDw_O2YpXXvz";
+
+    // ADMIN MAESTRO HARDCODED
+    const ADMIN_USER = "La Esquina";
+    const ADMIN_PASS = "Coban.2026";
 
     let supabaseClient = null;
-    let realtimeChannel = null;
     let currentUser = null;
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
 
-    // ESTADO EN MEMORIA TEMPORAL
+    let internalStaff = [];
+
     let state = {
       mesas: [],
       productos: [],
       pedidos: [],
       pedidosDetalles: [],
-      inventario: [],
-      usuariosPersonal: []
+      inventario: []
     };
 
     window.onload = function () {
-      switchTab('config');
+      initSupabase();
     };
 
-    // NAVEGACIÓN ENTRE PESTAÑAS
+    function handleLogin() {
+      const userVal = document.getElementById('auth-username').value.trim();
+      const passVal = document.getElementById('auth-password').value.trim();
+
+      if (userVal === ADMIN_USER && passVal === ADMIN_PASS) {
+        currentUser = { username: ADMIN_USER, role: 'Administrador' };
+        onSuccessfulAuth();
+        return;
+      }
+
+      const staff = internalStaff.find(s => s.username === userVal && s.pass === passVal);
+      if (staff) {
+        currentUser = { username: staff.username, role: staff.role };
+        onSuccessfulAuth();
+        return;
+      }
+
+      showToast('Credenciales incorrectas', 'error');
+    }
+
+    function onSuccessfulAuth() {
+      document.getElementById('auth-modal').classList.add('hidden');
+      document.getElementById('user-display-name').textContent = currentUser.username;
+      document.getElementById('user-display-role').textContent = currentUser.role;
+
+      showToast(`Bienvenido ${currentUser.username}`, 'success');
+      switchTab('pos');
+      fetchAllCloudData();
+      subscribeRealtimeChanges();
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('login-form').reset();
+      showToast('Sesión cerrada correctamente', 'info');
+    }
+
+    function initSupabase() {
+      try {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
+      } catch (err) {
+        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
+      }
+    }
+
+    async function fetchAllCloudData() {
+      if (!supabaseClient) return;
+
+      const [resMesas, resProductos, resPedidos, resDetalles, resInventario] = await Promise.all([
+        supabaseClient.from('mesas').select('*').order('numero', { ascending: true }),
+        supabaseClient.from('productos').select('*').order('nombre', { ascending: true }),
+        supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false }),
+        supabaseClient.from('detalles_pedido').select('*'),
+        supabaseClient.from('inventario').select('*').order('insumo', { ascending: true })
+      ]);
+
+      if (resMesas.data) state.mesas = resMesas.data;
+      if (resProductos.data) state.productos = resProductos.data;
+      if (resPedidos.data) state.pedidos = resPedidos.data;
+      if (resDetalles.data) state.pedidosDetalles = resDetalles.data;
+      if (resInventario.data) state.inventario = resInventario.data;
+
+      renderAll();
+    }
+
+    function subscribeRealtimeChanges() {
+      if (!supabaseClient) return;
+      supabaseClient
+        .channel('public_db_changes')
+        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+          fetchAllCloudData();
+        })
+        .subscribe();
+    }
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-slate-800', 'text-slate-100'));
@@ -747,155 +482,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       if (targetBtn) targetBtn.classList.add('bg-slate-800', 'text-slate-100');
     }
 
-    // CONFIGURACIÓN E INICIALIZACIÓN DE SUPABASE CLIENT Y AUTH LISTENERS
-    function setupSupabaseCredentials() {
-      const url = document.getElementById('supabase-url').value.trim();
-      const key = document.getElementById('supabase-key').value.trim();
-
-      if (!url || !key) {
-        showToast('Ingresa la URL y Key pública de Supabase', 'error');
-        return;
-      }
-
-      try {
-        supabaseClient = supabase.createClient(url, key);
-        
-        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
-        document.getElementById('connection-status-msg').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> Conectado a Supabase Client`;
-        
-        showToast('Cliente Supabase Inicializado', 'success');
-
-        // Escuchar el estado de autenticación (Auth State Listener)
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-          if (session && session.user) {
-            currentUser = session.user;
-            document.getElementById('auth-modal').classList.add('hidden');
-            document.getElementById('user-profile-card').classList.remove('hidden');
-            document.getElementById('user-email-display').textContent = currentUser.email;
-            
-            showToast(`Sesión activa: ${currentUser.email}`, 'success');
-            fetchAllCloudData();
-            subscribeRealtime();
-            switchTab('pos');
-          } else {
-            currentUser = null;
-            document.getElementById('auth-modal').classList.remove('hidden');
-            document.getElementById('user-profile-card').classList.add('hidden');
-            
-            if (realtimeChannel) {
-              supabaseClient.removeChannel(realtimeChannel);
-              realtimeChannel = null;
-            }
-          }
-        });
-
-      } catch (err) {
-        document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
-        showToast('Error en las credenciales de Supabase', 'error');
-      }
-    }
-
-    // AUTENTICACIÓN (INICIO DE SESIÓN)
-    async function handleAuthSubmit() {
-      if (!supabaseClient) {
-        showToast('Configura la conexión a Supabase primero en la vista "Credenciales Cloud"', 'error');
-        switchTab('config');
-        return;
-      }
-
-      const inputUser = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-
-      if (!inputUser || !password) {
-        showToast('Completa usuario y contraseña', 'error');
-        return;
-      }
-
-      // Convertir "la esquina" en el email registrado en Supabase Auth
-      let emailToLogin = inputUser;
-      if (inputUser.toLowerCase() === ADMIN_USER_DEFAULT) {
-        emailToLogin = ADMIN_EMAIL_DEFAULT;
-      }
-
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email: emailToLogin, password: password });
-      
-      if (error) {
-        // Si el usuario maestro aún no ha sido creado en Auth en la consola de Supabase, permite un inicio de sesión controlado
-        if (inputUser.toLowerCase() === ADMIN_USER_DEFAULT && password === ADMIN_PASS_DEFAULT) {
-          currentUser = { email: ADMIN_EMAIL_DEFAULT, role: 'administrador' };
-          document.getElementById('auth-modal').classList.add('hidden');
-          document.getElementById('user-profile-card').classList.remove('hidden');
-          document.getElementById('user-email-display').textContent = ADMIN_USER_DEFAULT;
-          showToast('Bienvenido Administrador (la esquina)', 'success');
-          fetchAllCloudData();
-          subscribeRealtime();
-          switchTab('pos');
-        } else {
-          showToast('Credenciales incorrectas', 'error');
-        }
-      } else {
-        showToast('Inicio de sesión exitoso', 'success');
-      }
-    }
-
-    async function handleSignOut() {
-      if (supabaseClient) {
-        await supabaseClient.auth.signOut();
-      }
-      currentUser = null;
-      document.getElementById('auth-modal').classList.remove('hidden');
-      document.getElementById('user-profile-card').classList.add('hidden');
-      showToast('Sesión cerrada', 'info');
-    }
-
-    // LECTURA DIRECTA DE LA BASE DE DATOS SUPABASE
-    async function fetchAllCloudData() {
-      if (!supabaseClient) return;
-
-      try {
-        const [resMesas, resProductos, resPedidos, resDetalles, resInventario, resUsuarios] = await Promise.all([
-          supabaseClient.from('mesas').select('*').order('numero', { ascending: true }),
-          supabaseClient.from('productos').select('*').order('nombre', { ascending: true }),
-          supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false }),
-          supabaseClient.from('detalles_pedido').select('*'),
-          supabaseClient.from('inventario').select('*').order('insumo', { ascending: true }),
-          supabaseClient.from('personal_usuarios').select('*').order('created_at', { ascending: false })
-        ]);
-
-        if (resMesas.data) state.mesas = resMesas.data;
-        if (resProductos.data) state.productos = resProductos.data;
-        if (resPedidos.data) state.pedidos = resPedidos.data;
-        if (resDetalles.data) state.pedidosDetalles = resDetalles.data;
-        if (resInventario.data) state.inventario = resInventario.data;
-        if (resUsuarios.data) state.usuariosPersonal = resUsuarios.data;
-
-        renderAll();
-      } catch (e) {
-        showToast('Error de comunicación con Supabase Cloud', 'error');
-      }
-    }
-
-    // SUSCRIPCIÓN EN TIEMPO REAL (WEBSOCKETS DE SUPABASE)
-    function subscribeRealtime() {
-      if (!supabaseClient) return;
-
-      if (realtimeChannel) {
-        supabaseClient.removeChannel(realtimeChannel);
-      }
-
-      realtimeChannel = supabaseClient
-        .channel('public_gastrocloud')
-        .on('postgres_changes', { event: '*', schema: 'public' }, () => {
-          fetchAllCloudData();
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Suscrito a cambios en tiempo real de Supabase.');
-          }
-        });
-    }
-
-    // RENDERIZADO GENERAL DE INTERFAZ
     function renderAll() {
       renderPosProducts();
       renderMesas();
@@ -904,10 +490,9 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       renderMenuTable();
       renderInventoryTable();
       renderHistoryTable();
-      renderUsersTable();
+      renderStaffTable();
     }
 
-    // 1. MÓDULO POS
     function renderPosProducts(category = 'all') {
       const grid = document.getElementById('pos-products-grid');
       const catContainer = document.getElementById('pos-categories');
@@ -921,11 +506,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       `).join('');
 
       const filtered = category === 'all' ? state.productos : state.productos.filter(p => p.categoria === category);
-
-      if (!filtered.length) {
-        grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500 text-xs">No hay productos en el catálogo cloud. Registra productos en la pestaña Menú.</div>`;
-        return;
-      }
 
       filtered.forEach(prod => {
         const card = document.createElement('div');
@@ -1014,7 +594,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
     }
 
     async function submitOrderToKitchen() {
-      if (!supabaseClient) return showToast('Conecta primero tu Supabase Cloud', 'error');
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
 
       const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
@@ -1030,10 +609,7 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
         total: total
       }]).select();
 
-      if (error) {
-        showToast('Error al enviar comanda a Supabase', 'error');
-        return;
-      }
+      if (error) return showToast('Error al guardar pedido en la nube', 'error');
 
       if (orderData && orderData[0]) {
         const orderId = orderData[0].id;
@@ -1054,19 +630,13 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
         }
       }
 
-      showToast('Comanda guardada en Supabase y notificada a la Cocina', 'success');
+      showToast('Comanda guardada en Supabase y enviada a Cocina/KDS', 'success');
       clearPosCart();
       fetchAllCloudData();
     }
 
-    // 2. MÓDULO MESAS
     function renderMesas() {
       const container = document.getElementById('mesas-grid');
-      if (!state.mesas.length) {
-        container.innerHTML = `<div class="col-span-full text-slate-500 text-xs text-center py-8">No hay mesas registradas. Registra una nueva mesa arriba.</div>`;
-        return;
-      }
-
       container.innerHTML = state.mesas.map(mesa => {
         let statusBg = "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
         if (mesa.estado === 'ocupada') statusBg = "bg-rose-500/10 border-rose-500/30 text-rose-400";
@@ -1079,10 +649,10 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
               <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${statusBg}">${mesa.estado}</span>
             </div>
             <div class="text-xs text-slate-400">
-              <p><i class="fa-solid fa-users"></i> Cap: ${mesa.capacidad} pers.</p>
+              <p><i class="fa-solid fa-users"></i> Cap: ${mesa.capacidad}</p>
             </div>
             <button onclick="selectMesaForOrder(${mesa.id}, ${mesa.numero})" class="w-full mt-2 bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded-lg text-slate-200 transition">
-              <i class="fa-solid fa-utensils"></i> Comanda
+              <i class="fa-solid fa-utensils"></i> Abrir / Comanda
             </button>
           </div>
         `;
@@ -1093,27 +663,9 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       currentOrderContext = { type: 'mesa', id: mesaId, title: `Mesa ${mesaNum}` };
       switchTab('pos');
       renderCart();
-      showToast(`Atendiendo Mesa ${mesaNum}`, 'info');
+      showToast(`Mesa ${mesaNum} seleccionada`, 'info');
     }
 
-    function openAddTableModal() { document.getElementById('modal-table').classList.remove('hidden'); }
-    function closeAddTableModal() { document.getElementById('modal-table').classList.add('hidden'); }
-
-    async function saveTable() {
-      if (!supabaseClient) return showToast('Conecta primero a Supabase', 'error');
-
-      const num = parseInt(document.getElementById('table-number').value);
-      const cap = parseInt(document.getElementById('table-capacity').value);
-
-      const { error } = await supabaseClient.from('mesas').insert([{ numero: num, capacidad: cap, estado: 'disponible' }]);
-      if (error) return showToast('Error o mesa ya existente', 'error');
-
-      closeAddTableModal();
-      showToast('Mesa registrada en la nube', 'success');
-      fetchAllCloudData();
-    }
-
-    // 3. MÓDULO KDS (COCINA / BARRA)
     function renderKds() {
       const container = document.getElementById('kds-cards-container');
       const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'cancelado');
@@ -1135,7 +687,7 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
               ${orderDetails.map(d => `
                 <div class="text-xs flex justify-between">
                   <span><b class="text-brand-400">${d.cantidad}x</b> ${d.nombre_producto}</span>
-                  <span class="text-[10px] text-slate-500 uppercase">${d.estacion || 'cocina'}</span>
+                  <span class="text-[10px] text-slate-500">${d.estacion}</span>
                 </div>
               `).join('')}
             </div>
@@ -1153,13 +705,11 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
     }
 
     async function updateOrderStatus(orderId, status) {
-      if (!supabaseClient) return;
       await supabaseClient.from('pedidos').update({ estado: status }).eq('id', orderId);
-      showToast(`Estado actualizado en la nube: ${status}`, 'info');
+      showToast(`Estado del pedido #${orderId} actualizado a ${status}`, 'info');
       fetchAllCloudData();
     }
 
-    // 4. CHECKOUT / COBRO EN CAJA
     function proceedToCheckout() {
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
       const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
@@ -1180,8 +730,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
     }
 
     async function confirmPayment() {
-      if (!supabaseClient) return showToast('Conecta primero a Supabase Cloud', 'error');
-
       const total = parseFloat(document.getElementById('checkout-amount').textContent.replace('$', ''));
       const method = document.getElementById('checkout-payment-method').value;
 
@@ -1202,7 +750,7 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
       }
 
-      showToast('Cobro registrado en Supabase Cloud', 'success');
+      showToast('Pago registrado correctamente en Supabase Cloud', 'success');
       closeCheckoutModal();
       clearPosCart();
       fetchAllCloudData();
@@ -1229,7 +777,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       `).join('');
     }
 
-    // 5. GESTIÓN MENÚ
     function renderMenuTable() {
       const tbody = document.getElementById('menu-table-body');
       tbody.innerHTML = state.productos.map(p => `
@@ -1249,8 +796,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
     function closeProductModal() { document.getElementById('modal-product').classList.add('hidden'); }
 
     async function saveProduct() {
-      if (!supabaseClient) return showToast('Conecta primero a Supabase', 'error');
-
       const newProd = {
         nombre: document.getElementById('prod-name').value,
         categoria: document.getElementById('prod-category').value,
@@ -1260,18 +805,16 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
 
       await supabaseClient.from('productos').insert([newProd]);
       closeProductModal();
-      showToast('Producto agregado al catálogo cloud', 'success');
+      showToast('Producto añadido al catálogo online', 'success');
       fetchAllCloudData();
     }
 
     async function deleteProduct(id) {
-      if (!supabaseClient) return;
       await supabaseClient.from('productos').delete().eq('id', id);
-      showToast('Producto eliminado de Supabase', 'info');
+      showToast('Producto eliminado de la base de datos', 'info');
       fetchAllCloudData();
     }
 
-    // 6. INVENTARIO
     function renderInventoryTable() {
       const tbody = document.getElementById('inventory-table-body');
       tbody.innerHTML = state.inventario.map(inv => {
@@ -1292,94 +835,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       }).join('');
     }
 
-    function openInventoryModal() { document.getElementById('modal-inventory').classList.remove('hidden'); }
-    function closeInventoryModal() { document.getElementById('modal-inventory').classList.add('hidden'); }
-
-    async function saveInventory() {
-      if (!supabaseClient) return showToast('Conecta primero a Supabase', 'error');
-
-      const insumo = {
-        insumo: document.getElementById('inv-insumo').value,
-        unidad: document.getElementById('inv-unidad').value,
-        stock_actual: parseFloat(document.getElementById('inv-stock-actual').value),
-        stock_minimo: parseFloat(document.getElementById('inv-stock-min').value)
-      };
-
-      await supabaseClient.from('inventario').insert([insumo]);
-      closeInventoryModal();
-      showToast('Insumo registrado en la nube', 'success');
-      fetchAllCloudData();
-    }
-
-    // 7. GESTIÓN DE USUARIOS / PERSONAL (Solo Administrador)
-    function renderUsersTable() {
-      const tbody = document.getElementById('users-table-body');
-      if (!state.usuariosPersonal.length) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500 text-xs">No hay usuarios de personal registrados en Supabase. El Administrador puede registrarlos arriba.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = state.usuariosPersonal.map(u => `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 font-semibold text-slate-100">${u.username || u.email}</td>
-          <td class="p-3 uppercase text-[10px] font-bold text-amber-400">${u.rol || 'Personal'}</td>
-          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Activo</span></td>
-          <td class="p-3 text-right">
-            <button onclick="deleteUser(${u.id})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openNewUserModal() {
-      document.getElementById('modal-user').classList.remove('hidden');
-    }
-
-    function closeNewUserModal() {
-      document.getElementById('modal-user').classList.add('hidden');
-    }
-
-    async function saveNewUser() {
-      if (!supabaseClient) return showToast('Conecta primero a Supabase Cloud', 'error');
-
-      const username = document.getElementById('newuser-username').value.trim();
-      const password = document.getElementById('newuser-password').value;
-      const rol = document.getElementById('newuser-rol').value;
-
-      // Registrar en la tabla pública de usuarios
-      const email = username.includes('@') ? username : `${username}@gastrocloud.com`;
-
-      const { data, error } = await supabaseClient.from('personal_usuarios').insert([{
-        username: username,
-        email: email,
-        rol: rol
-      }]);
-
-      if (error) {
-        showToast('Error al registrar usuario en la base de datos', 'error');
-        return;
-      }
-
-      // Intentar registrar el usuario en Supabase Auth
-      try {
-        await supabaseClient.auth.signUp({ email, password });
-      } catch (e) {
-        console.log('Registro directo en Auth administrado localmente');
-      }
-
-      closeNewUserModal();
-      showToast(`Usuario ${username} registrado correctamente`, 'success');
-      fetchAllCloudData();
-    }
-
-    async function deleteUser(id) {
-      if (!supabaseClient) return;
-      await supabaseClient.from('personal_usuarios').delete().eq('id', id);
-      showToast('Usuario eliminado', 'info');
-      fetchAllCloudData();
-    }
-
-    // 8. HISTORIAL DE VENTAS
     function renderHistoryTable() {
       const tbody = document.getElementById('history-table-body');
       tbody.innerHTML = state.pedidos.map(p => `
@@ -1393,7 +848,57 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
       `).join('');
     }
 
-    // NOTIFICACIONES TOAST
+    function renderStaffTable() {
+      const tbody = document.getElementById('users-table-body');
+      tbody.innerHTML = `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-semibold text-slate-100">${ADMIN_USER}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">Administrador</span></td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
+          <td class="p-3 text-right text-slate-500">Sistema</td>
+        </tr>
+      ` + internalStaff.map((u, i) => `
+        <tr class="hover:bg-slate-800/50">
+          <td class="p-3 font-semibold text-slate-200">${u.username}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">${u.role}</span></td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Activo</span></td>
+          <td class="p-3 text-right">
+            <button onclick="removeStaff(${i})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openNewUserModal() {
+      if (!currentUser || currentUser.role !== 'Administrador') {
+        return showToast('Solo el Administrador puede registrar personal', 'error');
+      }
+      document.getElementById('modal-user').classList.remove('hidden');
+    }
+
+    function closeNewUserModal() {
+      document.getElementById('modal-user').classList.add('hidden');
+    }
+
+    function saveNewUser() {
+      const name = document.getElementById('user-new-name').value.trim();
+      const pass = document.getElementById('user-new-pass').value.trim();
+      const role = document.getElementById('user-new-role').value;
+
+      if (!name || !pass) return showToast('Completa todos los campos', 'error');
+
+      internalStaff.push({ username: name, pass: pass, role: role });
+      closeNewUserModal();
+      renderStaffTable();
+      showToast(`Empleado ${name} registrado correctamente`, 'success');
+    }
+
+    function removeStaff(idx) {
+      internalStaff.splice(idx, 1);
+      renderStaffTable();
+      showToast('Empleado eliminado', 'info');
+    }
+
     function showToast(message, type = 'info') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
@@ -1410,12 +915,6 @@ INSERT INTO inventario (insumo, unidad, stock_actual, stock_minimo) VALUES
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
       }, 3000);
-    }
-
-    function copySqlSchema() {
-      const code = document.getElementById('sql-code-block').innerText;
-      navigator.clipboard.writeText(code);
-      showToast('Script SQL copiado al portapapeles', 'success');
     }
   </script>
 </body>
