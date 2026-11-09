@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - 100% Supabase Online</title>
+  <title>GastroCloud POS - Estaciones Separadas</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,14 +25,9 @@
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-    /* Estilos estrictos para impresora térmica de 58mm */
     @media print {
-      body * {
-        visibility: hidden !important;
-      }
-      #printable-ticket, #printable-ticket * {
-        visibility: visible !important;
-      }
+      body * { visibility: hidden !important; }
+      #printable-ticket, #printable-ticket * { visibility: visible !important; }
       #printable-ticket {
         position: absolute !important;
         left: 0 !important;
@@ -58,7 +53,7 @@
           <i class="fa-solid fa-utensils text-4xl"></i>
         </div>
         <h2 class="text-2xl font-black text-slate-100 tracking-tight">GastroCloud POS</h2>
-        <p class="text-xs text-slate-400">Acceso al Sistema de Gestión de Restaurante</p>
+        <p class="text-xs text-slate-400">Acceso al Sistema de Gestión</p>
       </div>
 
       <form id="login-form" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
@@ -76,7 +71,6 @@
             <input type="password" id="auth-password" required placeholder="••••••••" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
           </div>
         </div>
-
         <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-sm transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
           <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
         </button>
@@ -96,7 +90,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Supabase POS Cloud</span>
+            <span class="text-xs text-brand-500 font-medium">Estaciones Separadas</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -109,8 +103,11 @@
         <button onclick="switchTab('mesas')" id="nav-mesas" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
           <i class="fa-solid fa-table-cells w-5 text-center text-blue-400"></i> Mesas
         </button>
-        <button onclick="switchTab('kds')" id="nav-kds" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
-          <i class="fa-solid fa-fire-burner w-5 text-center text-rose-400"></i> Cocina / KDS
+        <button onclick="switchTab('kds-cocina')" id="nav-kds-cocina" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-fire-burner w-5 text-center text-rose-400"></i> KDS Cocina
+        </button>
+        <button onclick="switchTab('kds-barra')" id="nav-kds-barra" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
+          <i class="fa-solid fa-martini-glass-citrus w-5 text-center text-amber-400"></i> KDS Barra
         </button>
         <button onclick="switchTab('caja')" id="nav-caja" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition text-slate-400 hover:bg-slate-800 hover:text-slate-200">
           <i class="fa-solid fa-vault w-5 text-center text-purple-400"></i> Ventas y Caja
@@ -199,7 +196,7 @@
           </div>
           <div class="grid grid-cols-2 gap-2">
             <button onclick="submitOrderToKitchen()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 border border-slate-700">
-              <i class="fa-solid fa-paper-plane text-emerald-400"></i> Enviar a KDS
+              <i class="fa-solid fa-paper-plane text-emerald-400"></i> Enviar a Estaciones
             </button>
             <button onclick="proceedToCheckout()" class="w-full bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-semibold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-brand-600/20">
               <i class="fa-solid fa-credit-card"></i> Cobrar Ahora
@@ -223,15 +220,30 @@
       <div id="mesas-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
     </section>
 
-    <!-- KDS -->
-    <section id="tab-kds" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
+    <!-- KDS COCINA -->
+    <section id="tab-kds-cocina" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
       <div class="flex justify-between items-center mb-4 shrink-0">
         <div>
-          <h2 class="text-xl font-bold text-slate-100">Pantalla de Cocina / Barra (KDS)</h2>
-          <p class="text-xs text-slate-400">Actualización en vivo de comanda enviada.</p>
+          <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-fire-burner text-rose-400"></i> Ventana de Cocina (Alimentos)
+          </h2>
+          <p class="text-xs text-slate-400">Órdenes exclusivas de preparación de platillos.</p>
         </div>
       </div>
-      <div id="kds-cards-container" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1"></div>
+      <div id="kds-cocina-cards" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1"></div>
+    </section>
+
+    <!-- KDS BARRA -->
+    <section id="tab-kds-barra" class="tab-content hidden h-full p-6 flex flex-col overflow-hidden">
+      <div class="flex justify-between items-center mb-4 shrink-0">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+            <i class="fa-solid fa-martini-glass-citrus text-amber-400"></i> Ventana de Barra (Bebidas)
+          </h2>
+          <p class="text-xs text-slate-400">Órdenes exclusivas de preparación de bebidas y cocteles.</p>
+        </div>
+      </div>
+      <div id="kds-barra-cards" class="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-1"></div>
     </section>
 
     <!-- CAJA -->
@@ -257,13 +269,13 @@
     <!-- MENU -->
     <section id="tab-menu" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl font-bold text-slate-100">Catálogo de Productos</h2>
+        <h2 class="text-xl font-bold text-slate-100">Catálogo de Productos y Estación Asignada</h2>
         <button onclick="openProductModal()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
       </div>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr><th class="p-3">Nombre</th><th class="p-3">Categoría</th><th class="p-3">Estación</th><th class="p-3">Precio (Q)</th><th class="p-3 text-right">Acciones</th></tr>
+            <tr><th class="p-3">Nombre</th><th class="p-3">Categoría</th><th class="p-3">Estación Destino</th><th class="p-3">Precio (Q)</th><th class="p-3 text-right">Acciones</th></tr>
           </thead>
           <tbody id="menu-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
@@ -307,7 +319,6 @@
           <i class="fa-solid fa-user-plus"></i> Crear Nuevo Empleado
         </button>
       </div>
-
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
@@ -323,7 +334,7 @@
       <div class="max-w-xl mx-auto space-y-6">
         <div>
           <h2 class="text-xl font-bold text-slate-100">Configuración del Sistema</h2>
-          <p class="text-xs text-slate-400">Personaliza los parámetros globales de la sucursal guardados en Supabase.</p>
+          <p class="text-xs text-slate-400">Logotipo guardado localmente para impresión térmica rápida.</p>
         </div>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
@@ -333,17 +344,17 @@
 
           <div class="flex flex-col sm:flex-row items-center gap-6">
             <div id="config-logo-preview" class="w-40 h-28 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center overflow-hidden p-2">
-              <span class="text-xs text-slate-500 text-center">Cargando desde Supabase...</span>
+              <span class="text-xs text-slate-500 text-center">Cargando logotipo...</span>
             </div>
             <div class="flex-1 space-y-3 w-full">
-              <label class="block text-xs font-semibold text-slate-300">Seleccionar nueva imagen de logotipo:</label>
+              <label class="block text-xs font-semibold text-slate-300">Seleccionar nueva imagen:</label>
               <input type="file" id="config-logo-file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500 cursor-pointer">
-              <p class="text-[11px] text-slate-500">Se recomienda una imagen en blanco y negro o alto contraste para optimizar la impresión térmica.</p>
+              <p class="text-[11px] text-slate-500">Se actualiza de inmediato para todos tus tickets de venta.</p>
             </div>
           </div>
 
-          <button onclick="uploadAndSaveLogo()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-cloud-arrow-up"></i> Guardar Logotipo en Supabase
+          <button onclick="saveLogoLocally()" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Guardar Logotipo
           </button>
         </div>
       </div>
@@ -385,10 +396,13 @@
       <form onsubmit="event.preventDefault(); saveProduct();" class="space-y-3">
         <input type="text" id="prod-name" placeholder="Nombre del Producto" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
         <input type="text" id="prod-category" placeholder="Categoría (Comidas, Bebidas, etc)" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-        <select id="prod-station" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
-          <option value="cocina">Cocina</option>
-          <option value="barra">Barra</option>
-        </select>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Estación Destino</label>
+          <select id="prod-station" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+            <option value="cocina">Cocina (Alimentos / Comidas)</option>
+            <option value="barra">Barra (Bebidas / Cocteles)</option>
+          </select>
+        </div>
         <input type="number" step="0.01" id="prod-price" placeholder="Precio (Q)" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeProductModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
@@ -408,6 +422,7 @@
           <option value="Cajero">Cajero</option>
           <option value="Mesero">Mesero</option>
           <option value="Cocinero">Cocinero</option>
+          <option value="Bartender">Bartender</option>
         </select>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeNewUserModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
@@ -417,7 +432,6 @@
     </div>
   </div>
 
-  <!-- MODAL CREAR / EDITAR MESA -->
   <div id="modal-table" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 id="table-modal-title" class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Nueva Mesa</h3>
@@ -429,7 +443,7 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre / Alias (Opcional)</label>
-          <input type="text" id="table-name" placeholder="Ej: Terraza 1, VIP, Barra Exterior" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+          <input type="text" id="table-name" placeholder="Ej: Terraza 1, VIP" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-300 mb-1">Capacidad (Personas)</label>
@@ -443,7 +457,7 @@
     </div>
   </div>
 
-  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM -->
+  <!-- TICKET TÉRMICO -->
   <div id="printable-ticket" style="display:none;">
     <div id="ticket-logo-container" style="text-align: center; margin-bottom: 6px;"></div>
     <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
@@ -474,6 +488,7 @@
 
     window.onload = function () {
       initSupabase();
+      loadLogoLocallyPreview();
     };
 
     function initSupabase() {
@@ -535,7 +550,6 @@
       }
       switchTab('pos');
       fetchAllCloudData();
-      fetchLogoFromSupabase();
       subscribeRealtimeChanges();
     }
 
@@ -569,33 +583,18 @@
       renderAll();
     }
 
-    async function fetchLogoFromSupabase() {
-      if (!supabaseClient) return;
-      try {
-        const { data, error } = await supabaseClient
-          .from('configuracion')
-          .select('valor')
-          .eq('clave', 'logo_base64')
-          .single();
-
-        if (data && data.valor) {
-          globalLogoBase64 = data.valor;
-          const preview = document.getElementById('config-logo-preview');
-          if (preview) {
-            preview.innerHTML = `<img src="${globalLogoBase64}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
-          }
-        }
-      } catch (e) {
-        const preview = document.getElementById('config-logo-preview');
-        if (preview) preview.innerHTML = `<span class="text-xs text-rose-400 text-center">No hay logo guardado</span>`;
+    function loadLogoLocallyPreview() {
+      const savedLogo = localStorage.getItem('gastrocloud_logo');
+      const preview = document.getElementById('config-logo-preview');
+      if (savedLogo) {
+        globalLogoBase64 = savedLogo;
+        if (preview) preview.innerHTML = `<img src="${savedLogo}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
+      } else {
+        if (preview) preview.innerHTML = `<span class="text-xs text-slate-500 text-center">Sin logotipo guardado</span>`;
       }
     }
 
-    async function uploadAndSaveLogo() {
-      if (!currentUser || currentUser.role !== 'Administrador') {
-        return showToast('Solo el Administrador puede modificar la configuración', 'error');
-      }
-
+    function saveLogoLocally() {
       const fileInput = document.getElementById('config-logo-file');
       if (!fileInput.files || fileInput.files.length === 0) {
         return showToast('Selecciona una imagen primero', 'error');
@@ -604,26 +603,16 @@
       const file = fileInput.files[0];
       const reader = new FileReader();
 
-      reader.onload = async function(event) {
+      reader.onload = function(event) {
         const base64String = event.target.result;
         globalLogoBase64 = base64String;
-
-        const { error } = await supabaseClient
-          .from('configuracion')
-          .upsert({ clave: 'logo_base64', valor: base64String }, { onConflict: 'clave' });
-
-        if (error) {
-          showToast('Error al guardar en Supabase. Crea la tabla configuracion.', 'error');
-          console.error(error);
-          return;
-        }
+        localStorage.setItem('gastrocloud_logo', base64String);
 
         const preview = document.getElementById('config-logo-preview');
         if (preview) {
           preview.innerHTML = `<img src="${base64String}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
         }
-
-        showToast('¡Logotipo guardado en Supabase con éxito!', 'success');
+        showToast('¡Logotipo guardado correctamente en el navegador!', 'success');
       };
 
       reader.readAsDataURL(file);
@@ -636,7 +625,6 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion' }, () => { fetchLogoFromSupabase(); })
         .subscribe();
     }
 
@@ -656,7 +644,7 @@
     function renderAll() {
       renderPosProducts();
       renderMesas();
-      renderKds();
+      renderKdsStations();
       renderCaja();
       renderMenuTable();
       renderInventoryTable();
@@ -667,9 +655,7 @@
     function setOrderMode(mode) {
       ['general', 'llevar', 'pedidosya'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
-        if(btn) {
-          btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
-        }
+        if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
       });
 
       const activeBtn = document.getElementById(`btn-mode-${mode}`);
@@ -711,7 +697,10 @@
         card.onclick = () => addToCart(prod);
         card.innerHTML = `
           <div>
-            <span class="text-[10px] uppercase font-bold text-slate-500">${prod.categoria}</span>
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[9px] uppercase font-bold text-slate-500">${prod.categoria}</span>
+              <span class="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${prod.estacion === 'cocina' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}">${prod.estacion || 'cocina'}</span>
+            </div>
             <h4 class="font-semibold text-sm text-slate-100 line-clamp-2">${prod.nombre}</h4>
           </div>
           <div class="mt-3 flex justify-between items-center">
@@ -726,7 +715,7 @@
     function addToCart(prod) {
       const existing = currentCart.find(item => item.id === prod.id);
       if (existing) existing.cantidad += 1;
-      else currentCart.push({ ...prod, cantidad: 1, notas: '', enviado: false });
+      else currentCart.push({ ...prod, cantidad: 1, notas: '', enviado: false, estacion: prod.estacion || 'cocina' });
       renderCart();
     }
 
@@ -761,16 +750,16 @@
       container.innerHTML = currentCart.map((item, idx) => {
         const itemTotal = item.precio * item.cantidad;
         subtotal += itemTotal;
-        const statusBadge = item.enviado 
-          ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Enviado</span>`
-          : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Nuevo</span>`;
+        const stationBadge = item.estacion === 'barra' 
+          ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Barra (Bebida)</span>`
+          : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Cocina (Alimento)</span>`;
 
         return `
           <div class="bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl space-y-2">
             <div class="flex justify-between items-start">
               <div class="flex items-center gap-2">
                 <span class="font-semibold text-xs text-slate-100">${item.nombre}</span>
-                ${statusBadge}
+                ${stationBadge}
               </div>
               <span class="font-bold text-xs text-brand-500">Q${itemTotal.toFixed(2)}</span>
             </div>
@@ -799,7 +788,7 @@
 
     async function submitOrderToKitchen() {
       const nuevosItems = currentCart.filter(item => !item.enviado);
-      if (!nuevosItems.length) return showToast('No hay nuevos platillos para enviar a cocina.', 'error');
+      if (!nuevosItems.length) return showToast('No hay nuevos platillos o bebidas para enviar.', 'error');
 
       const subtotal = nuevosItems.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       const tax = subtotal * 0.16;
@@ -827,7 +816,7 @@
           cantidad: item.cantidad,
           precio_unitario: item.precio,
           notas: item.notas,
-          estacion: item.estacion
+          estacion: item.estacion || 'cocina'
         }));
         await supabaseClient.from('detalles_pedido').insert(details);
         if (currentOrderContext.type === 'mesa') {
@@ -838,7 +827,7 @@
       nuevosItems.forEach(item => item.enviado = true);
       if (currentOrderContext.type === 'mesa') mesaActiveOrders[currentOrderContext.id] = [...currentCart];
 
-      showToast('Platillos enviados a Cocina/KDS', 'success');
+      showToast('¡Bebidas enviadas a Barra y Alimentos a Cocina!', 'success');
       renderCart();
       await fetchAllCloudData();
     }
@@ -880,7 +869,7 @@
     }
 
     function openTableModal() {
-      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Solo el Administrador puede gestionar mesas', 'error');
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Solo Administrador', 'error');
       document.getElementById('table-edit-id').value = '';
       document.getElementById('table-number').value = '';
       document.getElementById('table-name').value = '';
@@ -937,32 +926,66 @@
       showToast(`${displayTitle} seleccionada`, 'info');
     }
 
-    function renderKds() {
-      const container = document.getElementById('kds-cards-container');
-      if (!container) return;
+    function renderKdsStations() {
       const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'listo' && p.estado !== 'cancelado');
-      if (!activeOrders.length) {
-        container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay comandas pendientes en cocina.</div>`;
-        return;
+
+      // Ventana Cocina (Alimentos)
+      const cocinaContainer = document.getElementById('kds-cocina-cards');
+      if (cocinaContainer) {
+        const cocinaOrders = activeOrders.map(order => {
+          const items = state.pedidosDetalles.filter(d => d.pedido_id === order.id && (d.estacion === 'cocina' || !d.estacion));
+          if (!items.length) return null;
+          return { ...order, items };
+        }).filter(Boolean);
+
+        if (!cocinaOrders.length) {
+          cocinaContainer.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay alimentos pendientes en Cocina.</div>`;
+        } else {
+          cocinaContainer.innerHTML = cocinaOrders.map(order => `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span class="font-bold text-sm text-rose-400">${order.origen}</span>
+                <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
+              </div>
+              <div class="space-y-2 flex-1">
+                ${order.items.map(d => `<div class="text-xs flex justify-between"><span><b class="text-rose-400">${d.cantidad}x</b> ${d.nombre_producto}</span><span class="text-[10px] text-slate-500">${d.notas || ''}</span></div>`).join('')}
+              </div>
+              <div class="pt-2 border-t border-slate-800 flex gap-2">
+                <button onclick="updateOrderStatus(${order.id}, 'listo')" class="w-full bg-rose-500/15 text-rose-400 text-xs py-2 rounded-lg font-semibold hover:bg-rose-500/25 transition">Marcar Cocina Lista</button>
+              </div>
+            </div>
+          `).join('');
+        }
       }
-      container.innerHTML = activeOrders.map(order => {
-        const orderDetails = state.pedidosDetalles.filter(d => d.pedido_id === order.id);
-        return `
-          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-              <span class="font-bold text-sm text-brand-500">${order.origen}</span>
-              <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
+
+      // Ventana Barra (Bebidas)
+      const barraContainer = document.getElementById('kds-barra-cards');
+      if (barraContainer) {
+        const barraOrders = activeOrders.map(order => {
+          const items = state.pedidosDetalles.filter(d => d.pedido_id === order.id && d.estacion === 'barra');
+          if (!items.length) return null;
+          return { ...order, items };
+        }).filter(Boolean);
+
+        if (!barraOrders.length) {
+          barraContainer.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay bebidas pendientes en Barra.</div>`;
+        } else {
+          barraContainer.innerHTML = barraOrders.map(order => `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+              <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span class="font-bold text-sm text-amber-400">${order.origen}</span>
+                <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
+              </div>
+              <div class="space-y-2 flex-1">
+                ${order.items.map(d => `<div class="text-xs flex justify-between"><span><b class="text-amber-400">${d.cantidad}x</b> ${d.nombre_producto}</span><span class="text-[10px] text-slate-500">${d.notas || ''}</span></div>`).join('')}
+              </div>
+              <div class="pt-2 border-t border-slate-800 flex gap-2">
+                <button onclick="updateOrderStatus(${order.id}, 'listo')" class="w-full bg-amber-500/15 text-amber-400 text-xs py-2 rounded-lg font-semibold hover:bg-amber-500/25 transition">Marcar Barra Lista</button>
+              </div>
             </div>
-            <div class="space-y-2 flex-1">
-              ${orderDetails.map(d => `<div class="text-xs flex justify-between"><span><b class="text-brand-400">${d.cantidad}x</b> ${d.nombre_producto}</span><span class="text-[10px] text-slate-500">${d.estacion}</span></div>`).join('')}
-            </div>
-            <div class="pt-2 border-t border-slate-800 flex gap-2">
-              <button onclick="updateOrderStatus(${order.id}, 'preparacion')" class="w-1/2 bg-amber-500/15 text-amber-400 text-xs py-2 rounded-lg font-semibold">En Proceso</button>
-              <button onclick="updateOrderStatus(${order.id}, 'listo')" class="w-1/2 bg-emerald-500/15 text-emerald-400 text-xs py-2 rounded-lg font-semibold">¡Listo!</button>
-            </div>
-          </div>
-        `;
-      }).join('');
+          `).join('');
+        }
+      }
     }
 
     async function updateOrderStatus(orderId, status) {
@@ -1016,7 +1039,7 @@
           cantidad: item.cantidad,
           precio_unitario: item.precio,
           notas: item.notas,
-          estacion: item.estacion
+          estacion: item.estacion || 'cocina'
         }));
         await supabaseClient.from('detalles_pedido').insert(details);
 
@@ -1028,7 +1051,7 @@
         delete mesaActiveOrders[currentOrderContext.id];
       }
 
-      showToast('Pago procesado y guardado con éxito', 'success');
+      showToast('Pago procesado con éxito', 'success');
       closeCheckoutModal();
       clearPosCart();
       fetchAllCloudData();
@@ -1109,15 +1132,20 @@
     function renderMenuTable() {
       const tbody = document.getElementById('menu-table-body');
       if (!tbody) return;
-      tbody.innerHTML = state.productos.map(p => `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 font-semibold text-slate-100">${p.nombre}</td>
-          <td class="p-3 text-slate-400">${p.categoria}</td>
-          <td class="p-3 uppercase text-[10px] font-bold text-slate-400">${p.estacion}</td>
-          <td class="p-3 font-bold text-brand-500">Q${parseFloat(p.precio).toFixed(2)}</td>
-          <td class="p-3 text-right"><button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button></td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = state.productos.map(p => {
+        const badge = p.estacion === 'barra' 
+          ? `<span class="px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 font-bold uppercase text-[10px]">Barra (Bebida)</span>`
+          : `<span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-bold uppercase text-[10px]">Cocina (Alimento)</span>`;
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-3 font-semibold text-slate-100">${p.nombre}</td>
+            <td class="p-3 text-slate-400">${p.categoria}</td>
+            <td class="p-3">${badge}</td>
+            <td class="p-3 font-bold text-brand-500">Q${parseFloat(p.precio).toFixed(2)}</td>
+            <td class="p-3 text-right"><button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function openProductModal() { document.getElementById('modal-product').classList.remove('hidden'); }
