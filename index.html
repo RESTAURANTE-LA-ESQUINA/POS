@@ -726,7 +726,6 @@
       if (!num || !cap) return showToast('Completa los campos obligatorios', 'error');
 
       if (editId) {
-        // MODIFICAR MESA
         const { error } = await supabaseClient
           .from('mesas')
           .update({ numero: num, nombre: name || null, capacidad: cap })
@@ -738,7 +737,6 @@
         }
         showToast(`Mesa ${num} actualizada correctamente`, 'success');
       } else {
-        // NUEVA MESA
         const { error } = await supabaseClient.from('mesas').insert([{
           numero: num,
           nombre: name || null,
@@ -781,7 +779,8 @@
 
     function renderKds() {
       const container = document.getElementById('kds-cards-container');
-      const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'cancelado');
+      // FILTRO CORREGIDO: Oculta los pedidos que ya estén "listos" o "pagados"
+      const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'listo' && p.estado !== 'cancelado');
 
       if (!activeOrders.length) {
         container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay comandas pendientes en cocina o barra.</div>`;
