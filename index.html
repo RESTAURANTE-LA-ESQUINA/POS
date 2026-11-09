@@ -25,7 +25,7 @@
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-    /* Estilos estrictos para impresión de tickets térmicos */
+    /* Estilos estrictos para impresora térmica de 58mm */
     @media print {
       body * {
         visibility: hidden !important;
@@ -37,12 +37,13 @@
         position: absolute !important;
         left: 0 !important;
         top: 0 !important;
-        width: 100% !important;
-        max-width: 80mm !important;
+        width: 58mm !important;
+        max-width: 58mm !important;
         margin: 0 !important;
-        padding: 5mm !important;
+        padding: 2mm !important;
         background: white !important;
         color: black !important;
+        font-family: 'Courier New', Courier, monospace !important;
       }
     }
   </style>
@@ -408,14 +409,15 @@
     </div>
   </div>
 
-  <!-- TICKET PARA IMPRESIÓN TÉRMICA (Invisible en pantalla, visible al imprimir) -->
+  <!-- TICKET PARA IMPRESIÓN TÉRMICA DE 58MM CON LOGOTIPO -->
   <div id="printable-ticket" style="display:none;">
-    <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 4px;">GASTROCLOUD POS</div>
-    <div style="text-align: center; font-size: 10px; margin-bottom: 8px;">Sistema de Restaurante Cloud</div>
-    <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 6px; margin-bottom: 6px; font-size: 11px;"></div>
-    <div id="ticket-items" style="border-bottom: 1px dashed black; padding-bottom: 6px; margin-bottom: 6px; font-size: 11px;"></div>
-    <div id="ticket-totals" style="font-size: 11px; margin-bottom: 10px;"></div>
-    <div style="text-align: center; font-size: 10px; border-top: 1px dashed black; padding-top: 6px;">¡Gracias por su compra!<br>Comanda guardada en Supabase</div>
+    <div style="text-align: center; margin-bottom: 6px;">
+      <img src="LOGO LA ESQUINA.png" alt="Restaurante La Esquina" style="max-width: 44mm; height: auto; display: block; margin: 0 auto; filter: grayscale(100%) contrast(150%);">
+    </div>
+    <div id="ticket-info" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
+    <div id="ticket-items" style="border-bottom: 1px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 10px;"></div>
+    <div id="ticket-totals" style="font-size: 10px; margin-bottom: 8px;"></div>
+    <div style="text-align: center; font-size: 9px; border-top: 1px dashed black; padding-top: 5px;">¡Gracias por su visita!<br>Restaurante La Esquina</div>
   </div>
 
   <script>
@@ -944,14 +946,14 @@
       const totalsDiv = document.getElementById('ticket-totals');
 
       infoDiv.innerHTML = `
-        <div>Ticket #: ${order.id}</div>
-        <div>Fecha: ${new Date(order.created_at || Date.now()).toLocaleString()}</div>
-        <div>Origen: ${order.origen}</div>
+        <div style="margin-bottom: 2px;">Ticket #: ${order.id}</div>
+        <div style="margin-bottom: 2px;">Fecha: ${new Date(order.created_at || Date.now()).toLocaleString()}</div>
+        <div style="margin-bottom: 2px;">Origen: ${order.origen}</div>
         <div>Pago: ${order.metodo_pago || 'Efectivo'}</div>
       `;
 
       itemsDiv.innerHTML = items.map(i => `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
           <span>${i.cantidad}x ${i.nombre || i.nombre_producto}</span>
           <span>Q${((i.precio || i.precio_unitario) * i.cantidad).toFixed(2)}</span>
         </div>
@@ -962,12 +964,11 @@
       const tot = order.total || 0;
 
       totalsDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between;"><span>Subtotal:</span><span>Q${sub.toFixed(2)}</span></div>
-        <div style="display: flex; justify-content: space-between;"><span>IVA (16%):</span><span>Q${tax.toFixed(2)}</span></div>
-        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; margin-top: 4px; padding-top: 4px;"><span>TOTAL:</span><span>Q${tot.toFixed(2)}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Subtotal:</span><span>Q${sub.toFixed(2)}</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>IVA (16%):</span><span>Q${tax.toFixed(2)}</span></div>
+        <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; margin-top: 4px; padding-top: 4px; font-size: 11px;"><span>TOTAL:</span><span>Q${tot.toFixed(2)}</span></div>
       `;
 
-      // Mostrar temporalmente para impresión limpia
       ticketEl.style.display = 'block';
       window.print();
       ticketEl.style.display = 'none';
@@ -1088,6 +1089,11 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function openNewUserManagerModal() {
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Solo Administrador', 'error');
+      document.getElementById('modal-user').classList.remove('hidden');
     }
 
     function openNewUserModal() {
