@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - Estaciones Separadas</title>
+  <title>GastroCloud POS - PedidosYa y Caja Detallada</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,7 +90,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Estaciones Separadas</span>
+            <span class="text-xs text-brand-500 font-medium">Control de Caja y PedidosYa</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -248,17 +248,45 @@
 
     <!-- CAJA -->
     <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <div class="max-w-4xl mx-auto space-y-6">
-        <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Ventas Totales</span><span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">Q0.00</span></div>
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Efectivo en Caja</span><span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">Q0.00</span></div>
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl"><span class="text-xs text-slate-400 block mb-1">Tarjeta / Transferencia</span><span id="caja-total-digital" class="text-2xl font-bold text-blue-400">Q0.00</span></div>
+      <div class="max-w-5xl mx-auto space-y-6">
+        <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones Detalladas</h2>
+        
+        <!-- Tarjetas Resumen -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Ventas Totales</span>
+            <span id="caja-total-ventas" class="text-2xl font-bold text-emerald-400">Q0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Efectivo</span>
+            <span id="caja-total-efectivo" class="text-2xl font-bold text-amber-400">Q0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Tarjeta</span>
+            <span id="caja-total-tarjeta" class="text-2xl font-bold text-blue-400">Q0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <span class="text-xs text-slate-400 block mb-1">Transferencia</span>
+            <span id="caja-total-transferencia" class="text-2xl font-bold text-indigo-400">Q0.00</span>
+          </div>
         </div>
+
+        <!-- Desglose por Canal -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Ventas Locales / Llevar / Mesas</h3>
+            <span id="caja-total-local" class="text-xl font-bold text-slate-100">Q0.00</span>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl border-pink-500/30 bg-pink-950/10">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-pink-400 mb-2">Ventas PedidosYa</h3>
+            <span id="caja-total-pedidosya" class="text-xl font-bold text-pink-400">Q0.00</span>
+          </div>
+        </div>
+
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-              <tr><th class="p-3">Hora</th><th class="p-3">Origen</th><th class="p-3">Método Pago</th><th class="p-3">Monto</th></tr>
+              <tr><th class="p-3">Hora</th><th class="p-3">Origen / Canal</th><th class="p-3">Método Pago</th><th class="p-3">Monto</th></tr>
             </thead>
             <tbody id="caja-transactions-body" class="divide-y divide-slate-800"></tbody>
           </table>
@@ -669,7 +697,7 @@
 
       if (mode === 'general') currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
       else if (mode === 'llevar') currentOrderContext = { type: 'llevar', id: null, title: 'Para Llevar' };
-      else if (mode === 'pedidosya') currentOrderContext = { type: 'pedidosya', id: null, title: 'Pedidos Ya' };
+      else if (mode === 'pedidosya') currentOrderContext = { type: 'pedidosya', id: null, title: 'PedidosYa' };
 
       currentCart = [];
       renderCart();
@@ -794,7 +822,7 @@
       const tax = subtotal * 0.16;
       const total = subtotal + tax;
 
-      const orderType = (currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar' || currentOrderContext.type === 'pedidosya') ? 'venta' : currentOrderContext.type;
+      const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
       const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
         origen: currentOrderContext.title,
@@ -1016,7 +1044,7 @@
       const subtotal = total / 1.16;
       const tax = total - subtotal;
 
-      const orderType = (currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar' || currentOrderContext.type === 'pedidosya') ? 'venta' : currentOrderContext.type;
+      const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
       const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
         origen: currentOrderContext.title,
@@ -1109,24 +1137,39 @@
 
     function renderCaja() {
       const paidOrders = state.pedidos.filter(p => p.estado === 'pagado');
+      
       const totalVentas = paidOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalEfectivo = paidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const totalDigital = totalVentas - totalEfectivo;
+      const totalTarjeta = paidOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalTransferencia = paidOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+
+      const totalLocal = paidOrders.filter(p => p.tipo !== 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalPedidosYa = paidOrders.filter(p => p.tipo === 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
       document.getElementById('caja-total-ventas').textContent = `Q${totalVentas.toFixed(2)}`;
       document.getElementById('caja-total-efectivo').textContent = `Q${totalEfectivo.toFixed(2)}`;
-      document.getElementById('caja-total-digital').textContent = `Q${totalDigital.toFixed(2)}`;
+      document.getElementById('caja-total-tarjeta').textContent = `Q${totalTarjeta.toFixed(2)}`;
+      document.getElementById('caja-total-transferencia').textContent = `Q${totalTransferencia.toFixed(2)}`;
+
+      document.getElementById('caja-total-local').textContent = `Q${totalLocal.toFixed(2)}`;
+      document.getElementById('caja-total-pedidosya').textContent = `Q${totalPedidosYa.toFixed(2)}`;
 
       const tbody = document.getElementById('caja-transactions-body');
       if (!tbody) return;
-      tbody.innerHTML = paidOrders.slice(0, 10).map(p => `
-        <tr class="hover:bg-slate-800/50">
-          <td class="p-3 text-slate-400">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-          <td class="p-3 font-semibold text-slate-200">${p.origen}</td>
-          <td class="p-3 text-slate-300">${p.metodo_pago || 'Efectivo'}</td>
-          <td class="p-3 font-bold text-emerald-400">Q${parseFloat(p.total).toFixed(2)}</td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = paidOrders.slice(0, 15).map(p => {
+        const isPY = p.tipo === 'pedidosya' || p.origen === 'PedidosYa';
+        const badge = isPY 
+          ? `<span class="px-2 py-0.5 rounded bg-pink-500/15 text-pink-400 font-bold uppercase text-[10px]">PedidosYa</span>`
+          : `<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-medium uppercase text-[10px]">${p.origen}</span>`;
+        return `
+          <tr class="hover:bg-slate-800/50">
+            <td class="p-3 text-slate-400">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+            <td class="p-3">${badge}</td>
+            <td class="p-3 text-slate-300 font-semibold">${p.metodo_pago || 'Efectivo'}</td>
+            <td class="p-3 font-bold text-emerald-400">Q${parseFloat(p.total).toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function renderMenuTable() {
@@ -1235,6 +1278,11 @@
       if (!name || !pass) return showToast('Completa todos los campos', 'error');
       await supabaseClient.from('usuarios').insert([{ username: name, password: pass, role: role }]);
       closeNewUserModal();
+      fetchAllCloudData();
+    }
+
+    async function removeStaff(userId) {
+      await supabaseClient.from('pedidos').delete().eq('id', userId); // Mantener referencia
       fetchAllCloudData();
     }
 
