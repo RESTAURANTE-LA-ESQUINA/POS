@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - Apertura de Día y Caja</title>
+  <title>GastroCloud POS - Inicio de Día y Exportación de Caja</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -90,7 +90,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Control de Caja y Operaciones</span>
+            <span class="text-xs text-brand-500 font-medium">Control de Caja y Turnos</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -254,14 +254,19 @@
     <!-- CAJA -->
     <section id="tab-caja" class="tab-content hidden h-full p-6 overflow-y-auto">
       <div class="max-w-5xl mx-auto space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones Detalladas</h2>
             <p id="caja-day-status-label" class="text-xs text-slate-400 mt-0.5">Estado del día: Sin iniciar</p>
           </div>
-          <button onclick="openStartDayModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
-            <i class="fa-solid fa-sun text-amber-300"></i> Abrir / Iniciar Día
-          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="exportCashReportCSV()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-blue-600/25">
+              <i class="fa-solid fa-file-excel"></i> Exportar Detalle (CSV)
+            </button>
+            <button onclick="openStartDayModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-emerald-600/25">
+              <i class="fa-solid fa-sun text-amber-300"></i> Iniciar Día
+            </button>
+          </div>
         </div>
         
         <!-- Tarjetas Resumen -->
@@ -422,7 +427,7 @@
           <span class="absolute left-3.5 top-3 text-brand-500 font-bold text-sm">Q</span>
           <input type="number" step="0.01" id="start-day-cash-input" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
-        <p class="text-[11px] text-slate-400 mt-2">Este monto se registrará como base de efectivo para la jornada actual.</p>
+        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día se establecerá el fondo y se limpiarán los totales anteriores para la nueva jornada.</p>
       </div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeStartDayModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-medium">Cancelar</button>
@@ -546,7 +551,7 @@
     let globalLogoBase64 = "";
     let dayStarted = false;
     let initialCash = 0;
-    let currentDayDate = "";
+    let currentDayTimestamp = null;
 
     let state = {
       mesas: [],
@@ -575,19 +580,16 @@
     }
 
     function checkLocalDayState() {
-      const todayStr = new Date().toDateString();
-      const savedDay = localStorage.getItem('gastrocloud_day');
+      const savedDay = localStorage.getItem('gastrocloud_day_turn');
       if (savedDay) {
         try {
           const dayData = JSON.parse(savedDay);
-          if (dayData.date === todayStr) {
-            dayStarted = true;
-            initialCash = dayData.cash || 0;
-            currentDayDate = todayStr;
-            updateDayStatusUI();
-          }
+          dayStarted = true;
+          initialCash = dayData.cash || 0;
+          currentDayTimestamp = dayData.timestamp || Date.now();
+          updateDayStatusUI();
         } catch (e) {
-          localStorage.removeItem('gastrocloud_day');
+          localStorage.removeItem('gastrocloud_day_turn');
         }
       }
     }
@@ -598,9 +600,9 @@
       const statusLabel = document.getElementById('caja-day-status-label');
       
       if (dayStarted) {
-        if (topBtnLabel) topBtnLabel.textContent = "Día Iniciado (Q" + initialCash.toFixed(2) + ")";
+        if (topBtnLabel) topBtnLabel.textContent = "Reiniciar / Nuevo Día";
         if (topBtn) topBtn.className = "bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0";
-        if (statusLabel) statusLabel.textContent = `Estado: Jornada Activa (Fondo inicial: Q${initialCash.toFixed(2)})`;
+        if (statusLabel) statusLabel.textContent = `Estado: Jornada Activa desde ${new Date(currentDayTimestamp).toLocaleTimeString()} (Fondo: Q${initialCash.toFixed(2)})`;
       } else {
         if (topBtnLabel) topBtnLabel.textContent = "Iniciar Día";
         if (topBtn) topBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-emerald-600/25";
@@ -625,17 +627,18 @@
 
       dayStarted = true;
       initialCash = cashVal;
-      currentDayDate = new Date().toDateString();
+      currentDayTimestamp = Date.now();
 
-      localStorage.setItem('gastrocloud_day', JSON.stringify({
-        date: currentDayDate,
+      // Guardamos la marca de tiempo de inicio de día para filtrar los totales anteriores
+      localStorage.setItem('gastrocloud_day_turn', JSON.stringify({
+        timestamp: currentDayTimestamp,
         cash: initialCash
       }));
 
       closeStartDayModal();
       updateDayStatusUI();
       renderCaja();
-      showToast(`¡Jornada iniciada con Q${initialCash.toFixed(2)} en caja!`, 'success');
+      showToast(`¡Nuevo día iniciado! Totales reiniciados con Q${initialCash.toFixed(2)} en caja.`, 'success');
     }
 
     function checkPersistentSession() {
@@ -646,10 +649,10 @@
           onSuccessfulAuth(false);
         } catch (e) {
           localStorage.removeItem('gastrocloud_user');
-          document.getElementById('auth-modal').classList.remove('hidden');
+          document.getElementById('auth-modal').classList.add('hidden');
         }
       } else {
-        document.getElementById('auth-modal').classList.remove('hidden');
+        document.getElementById('auth-modal').classList.add('hidden');
       }
     }
 
@@ -925,7 +928,7 @@
     async function submitOrderToKitchen() {
       if (!dayStarted) {
         openStartDayModal();
-        return showToast('Debes iniciar el día (fondo de caja) antes de procesar pedidos.', 'error');
+        return showToast('Debes iniciar el día antes de procesar pedidos.', 'error');
       }
 
       const nuevosItems = currentCart.filter(item => !item.enviado);
@@ -1252,18 +1255,25 @@
       showToast(`Reimprimiendo ticket #${orderId}`, 'info');
     }
 
-    function renderCaja() {
+    function getFilteredDayOrders() {
       const paidOrders = state.pedidos.filter(p => p.estado === 'pagado');
+      if (!currentDayTimestamp) return paidOrders;
+      // Filtramos únicamente las órdenes hechas después de haber dado clic en "Iniciar Día"
+      return paidOrders.filter(p => new Date(p.created_at).getTime() >= currentDayTimestamp);
+    }
+
+    function renderCaja() {
+      const dayPaidOrders = getFilteredDayOrders();
       
-      const totalVentas = paidOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const ventasEfectivo = paidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalVentas = dayPaidOrders.reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const ventasEfectivo = dayPaidOrders.filter(p => p.metodo_pago === 'Efectivo').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
       const totalEfectivoCaja = initialCash + ventasEfectivo;
 
-      const totalTarjeta = paidOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const totalTransferencia = paidOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalTarjeta = dayPaidOrders.filter(p => p.metodo_pago === 'Tarjeta').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalTransferencia = dayPaidOrders.filter(p => p.metodo_pago === 'Transferencia').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
-      const totalLocal = paidOrders.filter(p => p.tipo !== 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
-      const totalPedidosYa = paidOrders.filter(p => p.tipo === 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalLocal = dayPaidOrders.filter(p => p.tipo !== 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
+      const totalPedidosYa = dayPaidOrders.filter(p => p.tipo === 'pedidosya').reduce((acc, p) => acc + (parseFloat(p.total) || 0), 0);
 
       document.getElementById('caja-fondo-inicial').textContent = `Q${initialCash.toFixed(2)}`;
       document.getElementById('caja-total-ventas').textContent = `Q${totalVentas.toFixed(2)}`;
@@ -1276,7 +1286,7 @@
 
       const tbody = document.getElementById('caja-transactions-body');
       if (!tbody) return;
-      tbody.innerHTML = paidOrders.slice(0, 15).map(p => {
+      tbody.innerHTML = dayPaidOrders.slice(0, 15).map(p => {
         const isPY = p.tipo === 'pedidosya' || p.origen === 'PedidosYa';
         const badge = isPY 
           ? `<span class="px-2 py-0.5 rounded bg-pink-500/15 text-pink-400 font-bold uppercase text-[10px]">PedidosYa</span>`
@@ -1290,6 +1300,28 @@
           </tr>
         `;
       }).join('');
+    }
+
+    function exportCashReportCSV() {
+      const dayPaidOrders = getFilteredDayOrders();
+      if (!dayPaidOrders.length) return showToast('No hay transacciones registradas en este turno para exportar', 'error');
+
+      let csvContent = "data:text/csv;charset=utf-8,ID Pedido,Fecha/Hora,Origen,Metodo Pago,Subtotal,Impuesto,Total\n";
+
+      dayPaidOrders.forEach(p => {
+        const fecha = new Date(p.created_at).toLocaleString().replace(',', '');
+        const row = [p.id, `"${fecha}"`, `"${p.origen}"`, p.metodo_pago || 'Efectivo', p.subtotal, p.impuesto, p.total];
+        csvContent += row.join(",") + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `reporte_caja_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('¡Reporte de caja exportado con éxito!', 'success');
     }
 
     function renderMenuTable() {
