@@ -385,6 +385,16 @@
     let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
     let mesaActiveOrders = {};
 
+    // Variable global de estado declarada correctamente
+    let state = {
+      mesas: [],
+      productos: [],
+      pedidos: [],
+      pedidosDetalles: [],
+      inventario: [],
+      usuarios: []
+    };
+
     window.onload = function () {
       initSupabase();
     };
@@ -486,7 +496,6 @@
       if (targetTab) targetTab.classList.remove('hidden');
       if (targetBtn) targetBtn.classList.add('bg-slate-800', 'text-slate-100');
 
-      // Forzar renderizado inmediato si se cambia a mesas
       if (tabId === 'mesas') {
         renderMesas();
       }
@@ -506,6 +515,7 @@
     function renderPosProducts(category = 'all') {
       const grid = document.getElementById('pos-products-grid');
       const catContainer = document.getElementById('pos-categories');
+      if (!grid) return;
       grid.innerHTML = '';
 
       const categories = ['all', ...new Set(state.productos.map(p => p.categoria))];
@@ -561,6 +571,7 @@
 
     function renderCart() {
       const container = document.getElementById('pos-cart-items');
+      if (!container) return;
       document.getElementById('pos-order-context').textContent = currentOrderContext.title;
 
       if (currentCart.length === 0) {
@@ -906,6 +917,7 @@
       document.getElementById('caja-total-digital').textContent = `$${totalDigital.toFixed(2)}`;
 
       const tbody = document.getElementById('caja-transactions-body');
+      if (!tbody) return;
       tbody.innerHTML = paidOrders.slice(0, 10).map(p => `
         <tr class="hover:bg-slate-800/50">
           <td class="p-3 text-slate-400">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
