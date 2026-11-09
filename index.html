@@ -383,8 +383,6 @@
     let currentUser = null;
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
-    
-    // Almacenamiento persistente en memoria por mesa para evitar que se borre la cuenta activa
     let mesaActiveOrders = {};
 
     window.onload = function () {
@@ -487,6 +485,11 @@
       
       if (targetTab) targetTab.classList.remove('hidden');
       if (targetBtn) targetBtn.classList.add('bg-slate-800', 'text-slate-100');
+
+      // Forzar renderizado inmediato si se cambia a mesas
+      if (tabId === 'mesas') {
+        renderMesas();
+      }
     }
 
     function renderAll() {
@@ -611,7 +614,6 @@
     }
 
     async function submitOrderToKitchen() {
-      // Filtrar únicamente los nuevos platillos que no han sido enviados a cocina todavía
       const nuevosItems = currentCart.filter(item => !item.enviado);
 
       if (!nuevosItems.length) {
@@ -652,10 +654,8 @@
         }
       }
 
-      // Marcar los nuevos items como enviados para que no se borren de la comanda de la mesa pero no sedupliquen
       nuevosItems.forEach(item => item.enviado = true);
 
-      // Guardar en la persistencia local de la mesa actual
       if (currentOrderContext.type === 'mesa') {
         mesaActiveOrders[currentOrderContext.id] = [...currentCart];
       }
@@ -667,6 +667,13 @@
 
     function renderMesas() {
       const container = document.getElementById('mesas-grid');
+      if (!container) return;
+
+      if (!state.mesas || state.mesas.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay mesas registradas. Usa el botón "Nueva Mesa" para agregar una.</div>`;
+        return;
+      }
+
       const isAdmin = currentUser && currentUser.role === 'Administrador';
 
       container.innerHTML = state.mesas.map(mesa => {
@@ -679,7 +686,7 @@
         const adminActions = isAdmin ? `
           <div class="flex gap-1">
             <button onclick="editTable(${mesa.id})" class="p-1 text-slate-400 hover:text-blue-400 transition" title="Editar Mesa"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button onclick="deleteTable(${mesa.id})" class="p-1 text-slate-400 hover:text-rose-400 transition" title="Eliminar Mesa"><i class="fa-solid fa-trash border-slate-800"></i></button>
+            <button onclick="deleteTable(${mesa.id})" class="p-1 text-slate-400 hover:text-rose-400 transition" title="Eliminar Mesa"><i class="fa-solid fa-trash"></i></button>
           </div>
         ` : '';
 
@@ -789,8 +796,6 @@
     function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
       const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
       currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
-      
-      // Cargar la comanda persistente de esta mesa si existe
       currentCart = mesaActiveOrders[mesaId] ? [...mesaActiveOrders[mesaId]] : [];
 
       switchTab('pos');
@@ -800,6 +805,7 @@
 
     function renderKds() {
       const container = document.getElementById('kds-cards-container');
+      if (!container) return;
       const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'listo' && p.estado !== 'cancelado');
 
       if (!activeOrders.length) {
@@ -880,7 +886,6 @@
 
       if (!error && currentOrderContext.type === 'mesa') {
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
-        // Limpiar la memoria persistente de la mesa al cobrar definitivamente
         delete mesaActiveOrders[currentOrderContext.id];
       }
 
@@ -913,6 +918,7 @@
 
     function renderMenuTable() {
       const tbody = document.getElementById('menu-table-body');
+      if (!tbody) return;
       tbody.innerHTML = state.productos.map(p => `
         <tr class="hover:bg-slate-800/50">
           <td class="p-3 font-semibold text-slate-100">${p.nombre}</td>
@@ -951,6 +957,7 @@
 
     function renderInventoryTable() {
       const tbody = document.getElementById('inventory-table-body');
+      if (!tbody) return;
       tbody.innerHTML = state.inventario.map(inv => {
         const isLow = parseFloat(inv.stock_actual) <= parseFloat(inv.stock_minimo);
         return `
@@ -971,6 +978,7 @@
 
     function renderHistoryTable() {
       const tbody = document.getElementById('history-table-body');
+      if (!tbody) return;
       tbody.innerHTML = state.pedidos.map(p => `
         <tr class="hover:bg-slate-800/50">
           <td class="p-3 text-slate-400">#${p.id}</td>
@@ -984,6 +992,7 @@
 
     function renderStaffTable() {
       const tbody = document.getElementById('users-table-body');
+      if (!tbody) return;
       tbody.innerHTML = state.usuarios.map(u => {
         const isAdmin = u.role === 'Administrador';
         const roleBadge = isAdmin
