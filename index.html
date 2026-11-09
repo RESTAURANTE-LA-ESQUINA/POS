@@ -383,15 +383,9 @@
     let currentUser = null;
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Comanda General' };
-
-    let state = {
-      mesas: [],
-      productos: [],
-      pedidos: [],
-      pedidosDetalles: [],
-      inventario: [],
-      usuarios: []
-    };
+    
+    // Almacenamiento persistente en memoria por mesa para evitar que se borre la cuenta activa
+    let mesaActiveOrders = {};
 
     window.onload = function () {
       initSupabase();
@@ -543,7 +537,7 @@
       if (existing) {
         existing.cantidad += 1;
       } else {
-        currentCart.push({ ...prod, cantidad: 1, notas: '' });
+        currentCart.push({ ...prod, cantidad: 1, notas: '', enviado: false });
       }
       renderCart();
     }
@@ -556,6 +550,9 @@
 
     function clearPosCart() {
       currentCart = [];
+      if (currentOrderContext.type === 'mesa') {
+        delete mesaActiveOrders[currentOrderContext.id];
+      }
       renderCart();
     }
 
@@ -577,10 +574,17 @@
       container.innerHTML = currentCart.map((item, idx) => {
         const itemTotal = item.precio * item.cantidad;
         subtotal += itemTotal;
+        const statusBadge = item.enviado 
+          ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Enviado</span>`
+          : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Nuevo</span>`;
+
         return `
           <div class="bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl space-y-2">
             <div class="flex justify-between items-start">
-              <span class="font-semibold text-xs text-slate-100">${item.nombre}</span>
+              <div class="flex items-center gap-2">
+                <span class="font-semibold text-xs text-slate-100">${item.nombre}</span>
+                ${statusBadge}
+              </div>
               <span class="font-bold text-xs text-brand-500">$${itemTotal.toFixed(2)}</span>
             </div>
             <div class="flex justify-between items-center text-xs">
@@ -607,9 +611,14 @@
     }
 
     async function submitOrderToKitchen() {
-      if (!currentCart.length) return showToast('El carrito está vacío', 'error');
+      // Filtrar únicamente los nuevos platillos que no han sido enviados a cocina todavía
+      const nuevosItems = currentCart.filter(item => !item.enviado);
 
-      const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
+      if (!nuevosItems.length) {
+        return showToast('No hay nuevos platillos para enviar. Todo ya fue enviado a cocina.', 'error');
+      }
+
+      const subtotal = nuevosItems.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       const tax = subtotal * 0.16;
       const total = subtotal + tax;
 
@@ -626,7 +635,7 @@
 
       if (orderData && orderData[0]) {
         const orderId = orderData[0].id;
-        const details = currentCart.map(item => ({
+        const details = nuevosItems.map(item => ({
           pedido_id: orderId,
           producto_id: item.id,
           nombre_producto: item.nombre,
@@ -643,8 +652,16 @@
         }
       }
 
-      showToast('Comanda guardada en Supabase y enviada a Cocina/KDS', 'success');
-      clearPosCart();
+      // Marcar los nuevos items como enviados para que no se borren de la comanda de la mesa pero no sedupliquen
+      nuevosItems.forEach(item => item.enviado = true);
+
+      // Guardar en la persistencia local de la mesa actual
+      if (currentOrderContext.type === 'mesa') {
+        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
+      }
+
+      showToast('Nuevos platillos enviados a Cocina/KDS', 'success');
+      renderCart();
       await fetchAllCloudData();
     }
 
@@ -772,6 +789,10 @@
     function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
       const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
       currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
+      
+      // Cargar la comanda persistente de esta mesa si existe
+      currentCart = mesaActiveOrders[mesaId] ? [...mesaActiveOrders[mesaId]] : [];
+
       switchTab('pos');
       renderCart();
       showToast(`${displayTitle} seleccionada`, 'info');
@@ -779,7 +800,6 @@
 
     function renderKds() {
       const container = document.getElementById('kds-cards-container');
-      // FILTRO CORREGIDO: Oculta los pedidos que ya estén "listos" o "pagados"
       const activeOrders = state.pedidos.filter(p => p.estado !== 'pagado' && p.estado !== 'listo' && p.estado !== 'cancelado');
 
       if (!activeOrders.length) {
@@ -860,6 +880,8 @@
 
       if (!error && currentOrderContext.type === 'mesa') {
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
+        // Limpiar la memoria persistente de la mesa al cobrar definitivamente
+        delete mesaActiveOrders[currentOrderContext.id];
       }
 
       showToast('Pago registrado correctamente en Supabase Cloud', 'success');
