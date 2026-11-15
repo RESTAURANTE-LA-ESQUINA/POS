@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Restaurante La Esquina POS</title>
+  <title>GastroCloud POS - Sincronizado en Supabase Cloud</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -62,7 +62,7 @@
         <div class="inline-flex p-4 bg-brand-600/10 text-brand-500 rounded-2xl mb-2">
           <i class="fa-solid fa-utensils text-4xl"></i>
         </div>
-        <h2 class="text-2xl font-black text-slate-100 tracking-tight">Restaurante La Esquina</h2>
+        <h2 class="text-2xl font-black text-slate-100 tracking-tight">GastroCloud POS</h2>
         <p class="text-xs text-slate-400">Acceso al Sistema de Gestión</p>
       </div>
 
@@ -99,8 +99,8 @@
             <i class="fa-solid fa-utensils"></i>
           </div>
           <div>
-            <h1 class="font-bold text-lg text-slate-100 leading-none">Restaurante La Esquina</h1>
-            <span class="text-xs text-brand-500 font-medium">POS CONTROL</span>
+            <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
+            <span class="text-xs text-brand-500 font-medium">Control Cloud Centralizado</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -204,7 +204,6 @@
         <div class="p-4 border-t border-slate-800 bg-slate-950 space-y-3">
           <div class="space-y-1 text-sm">
             <div class="flex justify-between text-slate-400"><span>Subtotal</span><span id="pos-subtotal">Q0.00</span></div>
-            <div class="flex justify-between text-slate-400"><span>Impuesto (16%)</span><span id="pos-tax">Q0.00</span></div>
             <div class="flex justify-between text-lg font-bold text-slate-100 pt-2 border-t border-slate-800">
               <span>Total</span><span id="pos-total" class="text-brand-500">Q0.00</span>
             </div>
@@ -279,7 +278,6 @@
           </div>
         </div>
         
-        <!-- Tarjetas Resumen Local -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
             <span class="text-xs text-slate-400 block mb-1">Fondo Inicial</span>
@@ -303,7 +301,6 @@
           </div>
         </div>
 
-        <!-- Tarjeta Exclusiva PedidosYa -->
         <div class="bg-pink-950/25 border border-pink-500/30 rounded-2xl p-5 flex items-center justify-between">
           <div>
             <h3 class="text-sm font-bold uppercase tracking-wider text-pink-400 flex items-center gap-2 mb-1">
@@ -365,7 +362,6 @@
           <h2 class="text-xl font-bold text-slate-100">Historial de Ventas y Reimpresión de Tickets</h2>
           <p class="text-xs text-slate-400">Registro de todas las transacciones pasadas.</p>
         </div>
-        <!-- Botón limpiar historial visible solo para Administrador -->
         <button id="btn-clear-history" onclick="clearHistoryRecords()" class="hidden bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-rose-600/20">
           <i class="fa-solid fa-trash-can"></i> Limpiar Historial
         </button>
@@ -531,7 +527,7 @@
     </div>
   </div>
 
-  <!-- MODAL GESTIÓN INVENTARIO (SOLO ADMIN) -->
+  <!-- MODAL GESTIÓN INVENTARIO -->
   <div id="modal-inventory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
       <h3 id="inv-modal-title" class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Insumo al Inventario</h3>
@@ -769,7 +765,7 @@
       const userVal = document.getElementById('auth-username').value.trim();
       const passVal = document.getElementById('auth-password').value.trim();
 
-      if (!supabaseClient) return showToast('No se puede conectar à Supabase', 'error');
+      if (!supabaseClient) return showToast('No se puede conectar a Supabase', 'error');
 
       const { data, error } = await supabaseClient
         .from('usuarios')
@@ -799,7 +795,7 @@
     function handleLogout() {
       currentUser = null;
       localStorage.removeItem('gastrocloud_user');
-      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-modal').classList.add('hidden');
       document.getElementById('login-form').reset();
       showToast('Sesión cerrada correctamente', 'info');
     }
@@ -1040,10 +1036,9 @@
     }
 
     function updateCartTotals(subtotal) {
-      const tax = subtotal * 0.16;
-      const total = subtotal + tax;
+      const tax = 0; // Sin impuesto
+      const total = subtotal; // Total igual al subtotal
       document.getElementById('pos-subtotal').textContent = `Q${subtotal.toFixed(2)}`;
-      document.getElementById('pos-tax').textContent = `Q${tax.toFixed(2)}`;
       document.getElementById('pos-total').textContent = `Q${total.toFixed(2)}`;
     }
 
@@ -1057,8 +1052,8 @@
       if (!nuevosItems.length) return showToast('No hay nuevos platillos o bebidas para enviar.', 'error');
 
       const subtotal = nuevosItems.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
-      const tax = subtotal * 0.16;
-      const total = subtotal + tax;
+      const tax = 0;
+      const total = subtotal;
 
       const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
@@ -1093,7 +1088,7 @@
       nuevosItems.forEach(item => item.enviado = true);
       if (currentOrderContext.type === 'mesa') mesaActiveOrders[currentOrderContext.id] = [...currentCart];
 
-      showToast('¡Bebidas enviadas à Barra y Alimentos a Cocina!', 'success');
+      showToast('¡Bebidas enviadas a Barra y Alimentos a Cocina!', 'success');
       renderCart();
       await fetchAllCloudData();
     }
@@ -1263,8 +1258,7 @@
         return showToast('Debes iniciar el día antes de realizar cobros.', 'error');
       }
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
-      const subtotal = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
-      const total = subtotal * 1.16;
+      const total = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       document.getElementById('checkout-amount').textContent = `Q${total.toFixed(2)}`;
       document.getElementById('modal-checkout').classList.remove('hidden');
     }
@@ -1281,8 +1275,8 @@
     async function confirmPayment() {
       const total = parseFloat(document.getElementById('checkout-amount').textContent.replace('Q', ''));
       const method = document.getElementById('checkout-payment-method').value;
-      const subtotal = total / 1.16;
-      const tax = total - subtotal;
+      const subtotal = total;
+      const tax = 0;
 
       const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
@@ -1364,13 +1358,9 @@
         </div>
       `).join('');
 
-      const sub = order.subtotal || 0;
-      const tax = order.impuesto || 0;
       const tot = order.total || 0;
 
       totalsDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>Subtotal:</span><span>Q${sub.toFixed(2)}</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;"><span>IVA (16%):</span><span>Q${tax.toFixed(2)}</span></div>
         <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px dashed black; margin-top: 4px; padding-top: 4px; font-size: 11px;"><span>TOTAL:</span><span>Q${tot.toFixed(2)}</span></div>
       `;
 
@@ -1647,7 +1637,7 @@
     }
 
     function openInventoryModal() {
-      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido à Administradores', 'error');
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido a Administradores', 'error');
       document.getElementById('inv-edit-id').value = '';
       document.getElementById('inv-name').value = '';
       document.getElementById('inv-unit').value = '';
@@ -1658,7 +1648,7 @@
     }
 
     function editInventoryItem(invId) {
-      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido à Administradores', 'error');
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido a Administradores', 'error');
       const item = state.inventario.find(i => i.id === invId);
       if (!item) return;
       document.getElementById('inv-edit-id').value = item.id;
@@ -1717,7 +1707,6 @@
       fetchAllCloudData();
     }
 
-    // GESTIÓN DE HISTORIAL Y LIMPIEZA (SOLO ADMIN)
     function renderHistoryTable() {
       const tbody = document.getElementById('history-table-body');
       const clearBtn = document.getElementById('btn-clear-history');
@@ -1747,13 +1736,12 @@
 
     async function clearHistoryRecords() {
       if (!currentUser || currentUser.role !== 'Administrador') {
-        return showToast('Acceso restringido solo à Administradores', 'error');
+        return showToast('Acceso restringido solo a Administradores', 'error');
       }
 
       const confirmClear = confirm('¿Estás totalmente seguro de limpiar y eliminar todo el historial de tickets de la base de datos? Esta acción no se puede deshacer.');
       if (!confirmClear) return;
 
-      // Primero borramos los detalles de pedido asociados y luego los pedidos principales
       const { error: errDetalles } = await supabaseClient.from('detalles_pedido').delete().neq('id', 0);
       const { error: errPedidos } = await supabaseClient.from('pedidos').delete().neq('id', 0);
 
