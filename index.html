@@ -667,6 +667,13 @@
     window.onload = function () {
       initSupabase();
       loadLogoLocallyPreview();
+      
+      // RESPALDO DE SINCRONIZACIÓN AUTOMÁTICA CADA 3 SEGUNDOS (GARANTIZA KDS EN TIEMPO REAL SIN F5)
+      setInterval(() => {
+        if (supabaseClient && currentUser) {
+          fetchAllCloudDataSilent();
+        }
+      }, 3000);
     };
 
     function initSupabase() {
@@ -843,6 +850,23 @@
       renderAll();
     }
 
+    async function fetchAllCloudDataSilent() {
+      if (!supabaseClient) return;
+
+      const [resPedidos, resDetalles, resMesas] = await Promise.all([
+        supabaseClient.from('pedidos').select('*').order('created_at', { ascending: false }),
+        supabaseClient.from('detalles_pedido').select('*'),
+        supabaseClient.from('mesas').select('*').order('numero', { ascending: true })
+      ]);
+
+      if (resPedidos.data) state.pedidos = resPedidos.data;
+      if (resDetalles.data) state.pedidosDetalles = resDetalles.data;
+      if (resMesas.data) state.mesas = resMesas.data;
+
+      renderKdsStations();
+      renderMesas();
+    }
+
     function loadLogoLocallyPreview() {
       const savedLogo = localStorage.getItem('gastrocloud_logo');
       const preview = document.getElementById('config-logo-preview');
@@ -873,28 +897,13 @@
     function subscribeRealtimeChanges() {
       if (!supabaseClient) return;
       
-      // Limpiamos cualquier canal previo para garantizar la conexión limpia en tiempo real
       supabaseClient.removeAllChannels();
 
       supabaseClient
         .channel('kds-realtime-channel-global')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'inventario' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'configuracion_caja' }, async (payload) => {
-          if (payload.new) {
-            dayStarted = payload.new.day_started;
-            initialCash = parseFloat(payload.new.initial_cash) || 0;
-            currentDayTimestamp = payload.new.day_timestamp ? parseInt(payload.new.day_timestamp) : null;
-            updateDayStatusUI();
-            renderCaja();
-            showToast('¡Caja sincronizada en tiempo real!', 'info');
-          }
-        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
         .subscribe();
     }
 
