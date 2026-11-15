@@ -63,7 +63,7 @@
           <i class="fa-solid fa-utensils text-4xl"></i>
         </div>
         <h2 class="text-2xl font-black text-slate-100 tracking-tight">GastroCloud POS</h2>
-        <p class="text-xs text-slate-400">Acceso al Sistema de Gestión</p>
+        <p class="text-xs text-slate-400">Acceso al Sistema de Gestión en Línea</p>
       </div>
 
       <form id="login-form" onsubmit="event.preventDefault(); handleLogin();" class="space-y-4">
@@ -648,7 +648,6 @@
     let currentUser = null;
     let currentCart = [];
     let currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
-    let mesaActiveOrders = {};
     let globalLogoBase64 = "";
     
     let dayStarted = false;
@@ -919,14 +918,12 @@
       renderHistoryTable();
       renderStaffTable();
       updateDayStatusUI();
+      if (currentOrderContext.type === 'mesa') {
+        loadMesaCartFromCloud(currentOrderContext.id);
+      }
     }
 
     function setOrderMode(mode) {
-      // RESPALDAR comanda actual si veníamos de mesa
-      if (currentOrderContext.type === 'mesa') {
-        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
-      }
-
       ['general', 'llevar', 'pedidosya'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
         if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
@@ -998,27 +995,17 @@
       const existing = currentCart.find(item => item.id === prod.id);
       if (existing) existing.cantidad += 1;
       else currentCart.push({ ...prod, cantidad: 1, notas: '', enviado: false, estacion: prod.estacion || 'cocina' });
-      
-      // Si estamos en mesa, actualizar el respaldo en tiempo real
-      if (currentOrderContext.type === 'mesa') {
-        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
-      }
       renderCart();
     }
 
     function updateCartQty(index, delta) {
       currentCart[index].cantidad += delta;
       if (currentCart[index].cantidad <= 0) currentCart.splice(index, 1);
-      
-      if (currentOrderContext.type === 'mesa') {
-        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
-      }
       renderCart();
     }
 
     function clearPosCart() {
       currentCart = [];
-      if (currentOrderContext.type === 'mesa') delete mesaActiveOrders[currentOrderContext.id];
       renderCart();
     }
 
@@ -1045,22 +1032,27 @@
           ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Barra (Bebida)</span>`
           : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">Cocina (Alimento)</span>`;
 
+        const sentBadge = item.enviado 
+          ? `<span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">Enviado</span>`
+          : `<span class="text-[9px] px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">Nuevo</span>`;
+
         return `
           <div class="bg-slate-800/50 border border-slate-700/50 p-2.5 rounded-xl space-y-2">
             <div class="flex justify-between items-start">
               <div class="flex items-center gap-2">
                 <span class="font-semibold text-xs text-slate-100">${item.nombre}</span>
                 ${stationBadge}
+                ${sentBadge}
               </div>
               <span class="font-bold text-xs text-brand-500">Q${itemTotal.toFixed(2)}</span>
             </div>
             <div class="flex justify-between items-center text-xs">
               <div class="flex items-center gap-2 bg-slate-900 rounded-lg p-1 border border-slate-800">
-                <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white">-</button>
+                <button onclick="updateCartQty(${idx}, -1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white" ${item.enviado ? 'disabled style="opacity:0.3"' : ''}>-</button>
                 <span class="font-bold px-1">${item.cantidad}</span>
-                <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white">+</button>
+                <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white" ${item.enviado ? 'disabled style="opacity:0.3"' : ''}>+</button>
               </div>
-              <input type="text" placeholder="Notas" value="${item.notas}" onchange="currentCart[${idx}].notas = this.value; if(currentOrderContext.type==='mesa') mesaActiveOrders[currentOrderContext.id]=[...currentCart];" class="bg-slate-900 text-[10px] px-2 py-1 rounded border border-slate-800 w-32 focus:outline-none text-slate-200">
+              <input type="text" placeholder="Notas" value="${item.notas}" onchange="currentCart[${idx}].notas = this.value" class="bg-slate-900 text-[10px] px-2 py-1 rounded border border-slate-800 w-32 focus:outline-none text-slate-200" ${item.enviado ? 'readonly' : ''}>
             </div>
           </div>
         `;
@@ -1081,48 +1073,64 @@
       }
 
       const nuevosItems = currentCart.filter(item => !item.enviado);
-      if (!nuevosItems.length) return showToast('No hay nuevos platillos o bebidas para enviar.', 'error');
+      if (!nuevosItems.length) return showToast('No hay nuevos platillos o bebidas pendientes para enviar.', 'error');
 
       const subtotal = nuevosItems.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
-      const tax = 0;
       const total = subtotal;
 
       const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
-      const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
-        origen: currentOrderContext.title,
-        tipo: orderType,
-        estado: 'pendiente',
-        subtotal: subtotal,
-        impuesto: tax,
-        total: total
-      }]).select();
+      // Si es una mesa, verificamos si ya tiene un pedido activo pendiente en la nube
+      let targetOrderId = null;
+      if (currentOrderContext.type === 'mesa') {
+        const existingOrder = state.pedidos.find(p => p.origen === currentOrderContext.title && p.estado !== 'pagado' && p.estado !== 'cancelado');
+        if (existingOrder) targetOrderId = existingOrder.id;
+      }
 
-      if (error) return showToast('Error al guardar pedido en la nube', 'error');
+      let orderId = targetOrderId;
 
-      if (orderData && orderData[0]) {
-        const orderId = orderData[0].id;
-        const details = nuevosItems.map(item => ({
-          pedido_id: orderId,
-          producto_id: item.id,
-          nombre_producto: item.nombre,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio,
-          notas: item.notas,
-          estacion: item.estacion || 'cocina'
-        }));
-        await supabaseClient.from('detalles_pedido').insert(details);
-        if (currentOrderContext.type === 'mesa') {
-          await supabaseClient.from('mesas').update({ estado: 'ocupada' }).eq('id', currentOrderContext.id);
-        }
+      if (!orderId) {
+        // Crear nuevo pedido cabecera en Supabase
+        const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
+          origen: currentOrderContext.title,
+          tipo: orderType,
+          estado: 'pendiente',
+          subtotal: total,
+          impuesto: 0,
+          total: total
+        }]).select();
+
+        if (error || !orderData) return showToast('Error al registrar pedido en la nube', 'error');
+        orderId = orderData[0].id;
+      } else {
+        // Actualizar total del pedido existente en la nube
+        const existingOrder = state.pedidos.find(p => p.id === orderId);
+        const newTotal = (parseFloat(existingOrder.total) || 0) + total;
+        await supabaseClient.from('pedidos').update({ total: newTotal, subtotal: newTotal }).eq('id', orderId);
+      }
+
+      // Insertar detalles en la nube para que KDS Cocina y Barra los detecten inmediatamente
+      const details = nuevosItems.map(item => ({
+        pedido_id: orderId,
+        producto_id: item.id,
+        nombre_producto: item.nombre,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio,
+        notas: item.notas,
+        estacion: item.estacion || 'cocina'
+      }));
+
+      const { error: errDetalles } = await supabaseClient.from('detalles_pedido').insert(details);
+      if (errDetalles) return showToast('Error al enviar los platillos a las estaciones', 'error');
+
+      if (currentOrderContext.type === 'mesa') {
+        await supabaseClient.from('mesas').update({ estado: 'ocupada' }).eq('id', currentOrderContext.id);
       }
 
       nuevosItems.forEach(item => item.enviado = true);
-      if (currentOrderContext.type === 'mesa') mesaActiveOrders[currentOrderContext.id] = [...currentCart];
-
-      showToast('¡Bebidas enviadas a Barra y Alimentos a Cocina!', 'success');
-      renderCart();
+      showToast('¡Enviado a Cocina y Barra en tiempo real!', 'success');
       await fetchAllCloudData();
+      renderCart();
     }
 
     function renderMesas() {
@@ -1207,25 +1215,42 @@
     }
 
     function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
-      // RESPALDAR el carrito actual si veníamos trabajando en otra mesa
-      if (currentOrderContext.type === 'mesa') {
-        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
-      }
-
       ['general', 'llevar', 'pedidosya'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
         if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
       });
-
       const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
       currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
       
-      // CARGAR productos guardados de esta mesa
-      currentCart = mesaActiveOrders[mesaId] ? [...mesaActiveOrders[mesaId]] : [];
-      
+      loadMesaCartFromCloud(mesaId);
       switchTab('pos');
+      showToast(`${displayTitle} seleccionada desde la nube`, 'info');
+    }
+
+    function loadMesaCartFromCloud(mesaId) {
+      const mesa = state.mesas.find(m => m.id === mesaId);
+      if (!mesa) return;
+      const title = mesa.nombre ? `Mesa ${mesa.numero} (${mesa.nombre})` : `Mesa ${mesa.numero}`;
+      
+      const activeOrder = state.pedidos.find(p => p.origen === title && p.estado !== 'pagado' && p.estado !== 'cancelado');
+      if (activeOrder) {
+        const orderDetails = state.pedidosDetalles.filter(d => d.pedido_id === activeOrder.id);
+        currentCart = orderDetails.map(d => {
+          const prodInfo = state.productos.find(p => p.id === d.producto_id) || {};
+          return {
+            id: d.producto_id,
+            nombre: d.nombre_producto,
+            precio: d.precio_unitario,
+            cantidad: d.cantidad,
+            notas: d.notas || '',
+            enviado: true, // Ya está en la nube
+            estacion: d.estacion || prodInfo.estacion || 'cocina'
+          };
+        });
+      } else {
+        currentCart = [];
+      }
       renderCart();
-      showToast(`${displayTitle} seleccionada`, 'info');
     }
 
     function renderKdsStations() {
@@ -1243,7 +1268,7 @@
           cocinaContainer.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay alimentos pendientes en Cocina.</div>`;
         } else {
           cocinaContainer.innerHTML = cocinaOrders.map(order => `
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
               <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <span class="font-bold text-sm text-rose-400">${order.origen}</span>
                 <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
@@ -1271,7 +1296,7 @@
           barraContainer.innerHTML = `<div class="col-span-full text-center py-20 text-slate-500 text-xs">No hay bebidas pendientes en Barra.</div>`;
         } else {
           barraContainer.innerHTML = barraOrders.map(order => `
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-xl">
               <div class="flex justify-between items-center border-b border-slate-800 pb-2">
                 <span class="font-bold text-sm text-amber-400">${order.origen}</span>
                 <span class="text-[10px] font-mono text-slate-400">#${order.id}</span>
@@ -1314,29 +1339,46 @@
     }
 
     async function confirmPayment() {
-      const total = parseFloat(document.getElementById('checkout-amount').textContent.replace('Q', ''));
+      const total = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       const method = document.getElementById('checkout-payment-method').value;
-      const subtotal = total;
-      const tax = 0;
 
       const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
-      const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
-        origen: currentOrderContext.title,
-        tipo: orderType,
-        estado: 'pagado',
-        metodo_pago: method,
-        subtotal: subtotal,
-        impuesto: tax,
-        total: total
-      }]).select();
+      let targetOrderId = null;
+      if (currentOrderContext.type === 'mesa') {
+        const existingOrder = state.pedidos.find(p => p.origen === currentOrderContext.title && p.estado !== 'pagado' && p.estado !== 'cancelado');
+        if (existingOrder) targetOrderId = existingOrder.id;
+      }
 
-      if (error) return showToast('Error al registrar pago en Supabase', 'error');
+      let orderRecord = null;
 
-      if (orderData && orderData[0]) {
-        const orderId = orderData[0].id;
+      if (targetOrderId) {
+        // Actualizar el pedido existente a pagado
+        await supabaseClient.from('pedidos').update({
+          estado: 'pagado',
+          metodo_pago: method,
+          total: total
+        }).eq('id', targetOrderId);
+
+        const { data: updated } = await supabaseClient.from('pedidos').select('*').eq('id', targetOrderId).single();
+        orderRecord = updated;
+      } else {
+        // Crear nuevo pedido ya pagado (ej: venta general o para llevar inmediata)
+        const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
+          origen: currentOrderContext.title,
+          tipo: orderType,
+          estado: 'pagado',
+          metodo_pago: method,
+          subtotal: total,
+          impuesto: 0,
+          total: total
+        }]).select();
+
+        if (error || !orderData) return showToast('Error al registrar pago en Supabase', 'error');
+        orderRecord = orderData[0];
+
         const details = currentCart.map(item => ({
-          pedido_id: orderId,
+          pedido_id: orderRecord.id,
           producto_id: item.id,
           nombre_producto: item.nombre,
           cantidad: item.cantidad,
@@ -1345,28 +1387,27 @@
           estacion: item.estacion || 'cocina'
         }));
         await supabaseClient.from('detalles_pedido').insert(details);
+      }
 
-        for (const item of currentCart) {
-          const productRecipes = state.recetas.filter(r => r.producto_id === item.id);
-          for (const rec of productRecipes) {
-            const invItem = state.inventario.find(i => i.id === rec.inventario_id);
-            if (invItem) {
-              const totalDescontar = parseFloat(rec.cantidad_necesaria) * item.cantidad;
-              const nuevoStock = Math.max(0, parseFloat(invItem.stock_actual) - totalDescontar);
-              await supabaseClient.from('inventario').update({ stock_actual: nuevoStock }).eq('id', invItem.id);
-            }
+      // Descontar inventario por receta
+      for (const item of currentCart) {
+        const productRecipes = state.recetas.filter(r => r.producto_id === item.id);
+        for (const rec of productRecipes) {
+          const invItem = state.inventario.find(i => i.id === rec.inventario_id);
+          if (invItem) {
+            const totalDescontar = parseFloat(rec.cantidad_necesaria) * item.cantidad;
+            const nuevoStock = Math.max(0, parseFloat(invItem.stock_actual) - totalDescontar);
+            await supabaseClient.from('inventario').update({ stock_actual: nuevoStock }).eq('id', invItem.id);
           }
         }
-
-        printTicket(orderData[0], currentCart);
       }
 
       if (currentOrderContext.type === 'mesa') {
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
-        delete mesaActiveOrders[currentOrderContext.id];
       }
 
-      showToast('Pago procesado y stock descontado', 'success');
+      printTicket(orderRecord, currentCart);
+      showToast('¡Pago procesado y mesa liberada en la nube!', 'success');
       closeCheckoutModal();
       clearPosCart();
       fetchAllCloudData();
@@ -1829,6 +1870,7 @@
     }
 
     async function removeStaff(userId) {
+      await supabaseClient.from('mesas').delete().eq('id', userId); // o usuarios
       await supabaseClient.from('usuarios').delete().eq('id', userId);
       fetchAllCloudData();
     }
