@@ -436,7 +436,7 @@
           <span class="absolute left-3.5 top-3 text-brand-500 font-bold text-sm">Q</span>
           <input type="number" step="0.01" id="start-day-cash-input" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
-        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día en la nube, se sincronizará automáticamente en todas las PCs conectadas.</p>
+        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día en la nube, se sincronizará automáticamente en tiempo real en todas las PCs conectadas.</p>
       </div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeStartDayModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-medium">Cancelar</button>
@@ -668,7 +668,7 @@
 
       const timestampNow = Date.now();
 
-      // Guardamos el estado centralizado en Supabase para que se refleje en todas las computadoras
+      // Guardamos el estado centralizado en Supabase para que se refleje en tiempo real en todas las computadoras
       const { error } = await supabaseClient
         .from('configuracion_caja')
         .update({
@@ -700,10 +700,10 @@
           onSuccessfulAuth(false);
         } catch (e) {
           localStorage.removeItem('gastrocloud_user');
-          document.getElementById('auth-modal').classList.add('hidden');
+          document.getElementById('auth-modal').classList.remove('hidden');
         }
       } else {
-        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('auth-modal').classList.remove('hidden');
       }
     }
 
@@ -770,7 +770,6 @@
       if (resInventario.data) state.inventario = resInventario.data;
       if (resUsuarios.data) state.usuarios = resUsuarios.data;
 
-      // Actualizar también estado de caja desde la nube
       await fetchCloudDayState();
       renderAll();
     }
@@ -813,11 +812,20 @@
     function subscribeRealtimeChanges() {
       if (!supabaseClient) return;
       supabaseClient
-        .channel('public_kds_realtime')
+        .channel('public_gastrocloud_sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_caja' }, () => { fetchCloudDayState(); renderCaja(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'configuracion_caja' }, async (payload) => {
+          if (payload.new) {
+            dayStarted = payload.new.day_started;
+            initialCash = parseFloat(payload.new.initial_cash) || 0;
+            currentDayTimestamp = payload.new.day_timestamp ? parseInt(payload.new.day_timestamp) : null;
+            updateDayStatusUI();
+            renderCaja();
+            showToast('¡Caja sincronizada en tiempo real!', 'info');
+          }
+        })
         .subscribe();
     }
 
