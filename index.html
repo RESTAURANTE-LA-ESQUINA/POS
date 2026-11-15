@@ -334,17 +334,25 @@
         </div>
         <button onclick="openProductModal()" class="bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition"><i class="fa-solid fa-plus"></i> Nuevo Producto</button>
       </div>
-      <!-- Vista de Tarjetas con Fotos en el Menú -->
       <div id="menu-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </section>
 
     <!-- INVENTARIO -->
     <section id="tab-inventario" class="tab-content hidden h-full p-6 overflow-y-auto">
-      <h2 class="text-xl font-bold text-slate-100 mb-6">Inventario e Insumos Cloud</h2>
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-slate-100">Inventario e Insumos Cloud</h2>
+          <p class="text-xs text-slate-400">Control de stock de ingredientes y suministros.</p>
+        </div>
+        <!-- Botón visible solo para Administrador -->
+        <button id="btn-add-inventory" onclick="openInventoryModal()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition flex items-center gap-2">
+          <i class="fa-solid fa-plus"></i> Agregar Insumo
+        </button>
+      </div>
       <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <table class="w-full text-left text-xs">
           <thead class="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr><th class="p-3">Insumo</th><th class="p-3">Unidad</th><th class="p-3">Stock Actual</th><th class="p-3">Stock Mínimo</th><th class="p-3">Estado</th></tr>
+            <tr><th class="p-3">Insumo</th><th class="p-3">Unidad</th><th class="p-3">Stock Actual</th><th class="p-3">Stock Mínimo</th><th class="p-3">Estado</th><th class="p-3 text-right admin-col-header hidden">Acciones</th></tr>
           </thead>
           <tbody id="inventory-table-body" class="divide-y divide-slate-800"></tbody>
         </table>
@@ -433,7 +441,6 @@
           <span class="absolute left-3.5 top-3 text-brand-500 font-bold text-sm">Q</span>
           <input type="number" step="0.01" id="start-day-cash-input" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
-        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día en la nube, se sincronizará automáticamente en tiempo real en todas las PCs conectadas.</p>
       </div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeStartDayModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-medium">Cancelar</button>
@@ -469,7 +476,7 @@
     </div>
   </div>
 
-  <!-- MODAL NUEVO PRODUCTO CON FOTO Y RECETA -->
+  <!-- MODAL NUEVO PRODUCTO -->
   <div id="modal-product" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
       <h3 class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Platillo / Producto con Receta e Imagen</h3>
@@ -500,7 +507,6 @@
           <input type="file" id="prod-image-file" accept="image/*" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-500 cursor-pointer">
         </div>
 
-        <!-- SECCIÓN RECETA / INGREDIENTES -->
         <div class="border-t border-slate-800 pt-3 space-y-2">
           <div class="flex justify-between items-center">
             <label class="block text-xs font-bold text-brand-400"><i class="fa-solid fa-list-check"></i> Receta / Insumos a Descontar del Inventario</label>
@@ -512,6 +518,38 @@
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="closeProductModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
           <button type="submit" id="btn-save-product" class="w-1/2 bg-teal-600 text-white text-xs py-2.5 rounded-xl font-semibold">Guardar Producto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL GESTIÓN INVENTARIO (SOLO ADMIN) -->
+  <div id="modal-inventory" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <h3 id="inv-modal-title" class="font-bold text-slate-100 border-b border-slate-800 pb-2">Agregar Insumo al Inventario</h3>
+      <form onsubmit="event.preventDefault(); saveInventoryItem();" class="space-y-3">
+        <input type="hidden" id="inv-edit-id" value="">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Insumo</label>
+          <input type="text" id="inv-name" placeholder="Ej: Carne de Res, Queso Cheddar" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Unidad de Medida</label>
+          <input type="text" id="inv-unit" placeholder="Ej: Libras, Unidades, Litros" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Actual</label>
+            <input type="number" step="0.01" id="inv-stock" placeholder="0.00" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Stock Mínimo</label>
+            <input type="number" step="0.01" id="inv-min" placeholder="0.00" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100">
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="closeInventoryModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-2.5 rounded-xl">Cancelar</button>
+          <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2.5 rounded-xl font-semibold transition">Guardar Insumo</button>
         </div>
       </form>
     </div>
@@ -610,7 +648,6 @@
     let mesaActiveOrders = {};
     let globalLogoBase64 = "";
     
-    // Variables de Estado de Caja en la Nube
     let dayStarted = false;
     let initialCash = 0;
     let currentDayTimestamp = null;
@@ -754,7 +791,7 @@
     function handleLogout() {
       currentUser = null;
       localStorage.removeItem('gastrocloud_user');
-      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-modal').classList.add('hidden');
       document.getElementById('login-form').reset();
       showToast('Sesión cerrada correctamente', 'info');
     }
@@ -1265,7 +1302,6 @@
         }));
         await supabaseClient.from('detalles_pedido').insert(details);
 
-        // DESCONTAR AUTOMÁTICAMENTE EL INVENTARIO SEGÚN LA RECETA DEL PRODUCTO
         for (const item of currentCart) {
           const productRecipes = state.recetas.filter(r => r.producto_id === item.id);
           for (const rec of productRecipes) {
@@ -1521,7 +1557,6 @@
         }
       }
 
-      // Guardar producto
       const { data: prodData, error: dbError } = await supabaseClient.from('productos').insert([{
         nombre: name,
         categoria: category,
@@ -1537,8 +1572,6 @@
       }
 
       const newProdId = prodData[0].id;
-
-      // Guardar receta asociada
       const rowDivs = document.querySelectorAll('#recipe-rows-container > div');
       for (const row of rowDivs) {
         const invId = row.querySelector('.recipe-inv-select').value;
@@ -1565,11 +1598,33 @@
       showToast('Producto eliminado', 'info');
     }
 
+    // GESTIÓN DE INVENTARIO (SOLO ADMINISTRADOR)
     function renderInventoryTable() {
       const tbody = document.getElementById('inventory-table-body');
+      const addBtn = document.getElementById('btn-add-inventory');
+      const adminColHeaders = document.querySelectorAll('.admin-col-header');
       if (!tbody) return;
+
+      const isAdmin = currentUser && currentUser.role === 'Administrador';
+
+      if (addBtn) {
+        if (isAdmin) addBtn.classList.remove('hidden');
+        else addBtn.classList.add('hidden');
+      }
+
+      adminColHeaders.forEach(th => {
+        if (isAdmin) th.classList.remove('hidden');
+        else th.classList.add('hidden');
+      });
+
       tbody.innerHTML = state.inventario.map(inv => {
         const isLow = parseFloat(inv.stock_actual) <= parseFloat(inv.stock_minimo);
+        const adminActionCell = isAdmin ? `
+          <td class="p-3 text-right">
+            <button onclick="editInventoryItem(${inv.id})" class="p-1 text-slate-400 hover:text-blue-400 transition" title="Editar stock"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button onclick="deleteInventoryItem(${inv.id})" class="p-1 text-slate-400 hover:text-rose-400 transition ml-2" title="Eliminar insumo"><i class="fa-solid fa-trash"></i></button>
+          </td>` : '';
+
         return `
           <tr class="hover:bg-slate-800/50">
             <td class="p-3 font-semibold text-slate-100">${inv.insumo}</td>
@@ -1577,9 +1632,81 @@
             <td class="p-3 font-bold text-slate-200">${inv.stock_actual}</td>
             <td class="p-3 text-slate-400">${inv.stock_minimo}</td>
             <td class="p-3">${isLow ? `<span class="px-2 py-0.5 rounded bg-rose-500/15 text-rose-400 font-semibold">Stock Bajo</span>` : `<span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400">Normal</span>`}</td>
+            ${adminActionCell}
           </tr>
         `;
       }).join('');
+    }
+
+    function openInventoryModal() {
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido a Administradores', 'error');
+      document.getElementById('inv-edit-id').value = '';
+      document.getElementById('inv-name').value = '';
+      document.getElementById('inv-unit').value = '';
+      document.getElementById('inv-stock').value = '';
+      document.getElementById('inv-min').value = '';
+      document.getElementById('inv-modal-title').textContent = 'Agregar Insumo al Inventario';
+      document.getElementById('modal-inventory').classList.remove('hidden');
+    }
+
+    function editInventoryItem(invId) {
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido a Administradores', 'error');
+      const item = state.inventario.find(i => i.id === invId);
+      if (!item) return;
+      document.getElementById('inv-edit-id').value = item.id;
+      document.getElementById('inv-name').value = item.insumo;
+      document.getElementById('inv-unit').value = item.unidad;
+      document.getElementById('inv-stock').value = item.stock_actual;
+      document.getElementById('inv-min').value = item.stock_minimo;
+      document.getElementById('inv-modal-title').textContent = `Editar Insumo: ${item.insumo}`;
+      document.getElementById('modal-inventory').classList.remove('hidden');
+    }
+
+    function closeInventoryModal() {
+      document.getElementById('modal-inventory').classList.add('hidden');
+    }
+
+    async function saveInventoryItem() {
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido', 'error');
+
+      const editId = document.getElementById('inv-edit-id').value;
+      const name = document.getElementById('inv-name').value.trim();
+      const unit = document.getElementById('inv-unit').value.trim();
+      const stock = parseFloat(document.getElementById('inv-stock').value);
+      const min = parseFloat(document.getElementById('inv-min').value);
+
+      if (!name || !unit || isNaN(stock) || isNaN(min)) return showToast('Completa todos los campos', 'error');
+
+      if (editId) {
+        const { error } = await supabaseClient.from('inventario').update({
+          insumo: name,
+          unidad: unit,
+          stock_actual: stock,
+          stock_minimo: min
+        }).eq('id', editId);
+        if (error) return showToast('Error al actualizar inventario (Verifica permisos de Administrador)', 'error');
+        showToast('Insumo actualizado con éxito', 'success');
+      } else {
+        const { error } = await supabaseClient.from('inventario').insert([{
+          insumo: name,
+          unidad: unit,
+          stock_actual: stock,
+          stock_minimo: min
+        }]);
+        if (error) return showToast('Error al agregar insumo (Verifica permisos de Administrador)', 'error');
+        showToast('Insumo agregado con éxito', 'success');
+      }
+
+      closeInventoryModal();
+      fetchAllCloudData();
+    }
+
+    async function deleteInventoryItem(invId) {
+      if (!currentUser || currentUser.role !== 'Administrador') return showToast('Acceso restringido', 'error');
+      const { error } = await supabaseClient.from('inventario').delete().eq('id', invId);
+      if (error) return showToast('No se pudo eliminar el insumo', 'error');
+      showToast('Insumo eliminado del inventario', 'info');
+      fetchAllCloudData();
     }
 
     function renderHistoryTable() {
