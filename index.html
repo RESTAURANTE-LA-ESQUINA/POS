@@ -1125,8 +1125,10 @@
 
       nuevosItems.forEach(item => item.enviado = true);
       showToast('¡Enviado a Cocina y Barra en tiempo real!', 'success');
+      
       await fetchAllCloudData();
       renderCart();
+      renderKdsStations();
     }
 
     function renderMesas() {
@@ -1239,7 +1241,7 @@
             precio: d.precio_unitario,
             cantidad: d.cantidad,
             notas: d.notas || '',
-            enviado: true, // Ya está en la nube
+            enviado: true,
             estacion: d.estacion || prodInfo.estacion || 'cocina'
           };
         });
@@ -1320,8 +1322,6 @@
         return showToast('Debes iniciar el día antes de realizar cobros.', 'error');
       }
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
-      
-      // Calcular total sumando los precios unitarios por cantidad de cada ítem en el carrito actual (enviados y nuevos sin enviar)
       const total = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       document.getElementById('checkout-amount').textContent = `Q${total.toFixed(2)}`;
       document.getElementById('modal-checkout').classList.remove('hidden');
@@ -1351,7 +1351,6 @@
       let orderRecord = null;
       let itemsToPrint = [...currentCart];
 
-      // Si hay ítems nuevos que no se habían enviado a estaciones antes de cobrar, los insertamos en la nube de una vez
       const nuevosItems = currentCart.filter(item => !item.enviado);
       
       if (targetOrderId) {
@@ -1368,7 +1367,6 @@
           await supabaseClient.from('detalles_pedido').insert(details);
         }
 
-        // Actualizar el pedido en la nube a pagado
         await supabaseClient.from('pedidos').update({
           estado: 'pagado',
           metodo_pago: method,
@@ -1379,7 +1377,6 @@
         const { data: updated } = await supabaseClient.from('pedidos').select('*').eq('id', targetOrderId).single();
         orderRecord = updated;
       } else {
-        // Crear nuevo pedido ya pagado (venta general o para llevar)
         const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
           origen: currentOrderContext.title,
           tipo: orderType,
@@ -1405,7 +1402,6 @@
         await supabaseClient.from('detalles_pedido').insert(details);
       }
 
-      // Descontar inventario según las recetas de todos los productos cobrados
       for (const item of currentCart) {
         const productRecipes = state.recetas.filter(r => r.producto_id === item.id);
         for (const rec of productRecipes) {
@@ -1418,7 +1414,6 @@
         }
       }
 
-      // LIBERAR LA MESA AUTOMÁTICAMENTE A DISPONIBLE EN LA NUBE
       if (currentOrderContext.type === 'mesa') {
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
       }
