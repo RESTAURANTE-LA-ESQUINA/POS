@@ -164,7 +164,6 @@
       <div class="flex-1 flex flex-col h-full overflow-hidden p-4 border-r border-slate-800">
         <div class="flex items-center justify-between pb-3 mb-2 shrink-0">
           <div class="flex items-center gap-2 overflow-x-auto" id="pos-categories"></div>
-          <!-- Botón de iniciar día (Visible solo para Administrador) -->
           <button id="btn-start-day-top" onclick="openStartDayModal()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-emerald-600/20">
             <i class="fa-solid fa-sun text-amber-300"></i> <span id="start-day-btn-label">Iniciar Día</span>
           </button>
@@ -923,6 +922,11 @@
     }
 
     function setOrderMode(mode) {
+      // RESPALDAR comanda actual si veníamos de mesa
+      if (currentOrderContext.type === 'mesa') {
+        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
+      }
+
       ['general', 'llevar', 'pedidosya'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
         if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
@@ -994,12 +998,21 @@
       const existing = currentCart.find(item => item.id === prod.id);
       if (existing) existing.cantidad += 1;
       else currentCart.push({ ...prod, cantidad: 1, notas: '', enviado: false, estacion: prod.estacion || 'cocina' });
+      
+      // Si estamos en mesa, actualizar el respaldo en tiempo real
+      if (currentOrderContext.type === 'mesa') {
+        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
+      }
       renderCart();
     }
 
     function updateCartQty(index, delta) {
       currentCart[index].cantidad += delta;
       if (currentCart[index].cantidad <= 0) currentCart.splice(index, 1);
+      
+      if (currentOrderContext.type === 'mesa') {
+        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
+      }
       renderCart();
     }
 
@@ -1047,7 +1060,7 @@
                 <span class="font-bold px-1">${item.cantidad}</span>
                 <button onclick="updateCartQty(${idx}, 1)" class="w-5 h-5 flex items-center justify-center text-slate-400 hover:text-white">+</button>
               </div>
-              <input type="text" placeholder="Notas" value="${item.notas}" onchange="currentCart[${idx}].notas = this.value" class="bg-slate-900 text-[10px] px-2 py-1 rounded border border-slate-800 w-32 focus:outline-none text-slate-200">
+              <input type="text" placeholder="Notas" value="${item.notas}" onchange="currentCart[${idx}].notas = this.value; if(currentOrderContext.type==='mesa') mesaActiveOrders[currentOrderContext.id]=[...currentCart];" class="bg-slate-900 text-[10px] px-2 py-1 rounded border border-slate-800 w-32 focus:outline-none text-slate-200">
             </div>
           </div>
         `;
@@ -1057,7 +1070,7 @@
     }
 
     function updateCartTotals(subtotal) {
-      const total = subtotal; // Total limpio sin subtotales ni impuestos intermedios
+      const total = subtotal; 
       document.getElementById('pos-total').textContent = `Q${total.toFixed(2)}`;
     }
 
@@ -1194,13 +1207,22 @@
     }
 
     function selectMesaForOrder(mesaId, mesaNum, mesaNombre) {
+      // RESPALDAR el carrito actual si veníamos trabajando en otra mesa
+      if (currentOrderContext.type === 'mesa') {
+        mesaActiveOrders[currentOrderContext.id] = [...currentCart];
+      }
+
       ['general', 'llevar', 'pedidosya'].forEach(m => {
         const btn = document.getElementById(`btn-mode-${m}`);
         if(btn) btn.className = "px-2 py-1.5 rounded-lg text-[11px] font-semibold transition bg-slate-800 text-slate-400 hover:bg-slate-700 flex items-center justify-center gap-1";
       });
+
       const displayTitle = mesaNombre ? `Mesa ${mesaNum} (${mesaNombre})` : `Mesa ${mesaNum}`;
       currentOrderContext = { type: 'mesa', id: mesaId, title: displayTitle };
+      
+      // CARGAR productos guardados de esta mesa
       currentCart = mesaActiveOrders[mesaId] ? [...mesaActiveOrders[mesaId]] : [];
+      
       switchTab('pos');
       renderCart();
       showToast(`${displayTitle} seleccionada`, 'info');
