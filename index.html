@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GastroCloud POS - PedidosYa y Detalle en PDF</title>
+  <title>GastroCloud POS - Sincronizado en Supabase Cloud</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -100,7 +100,7 @@
           </div>
           <div>
             <h1 class="font-bold text-lg text-slate-100 leading-none">GastroCloud</h1>
-            <span class="text-xs text-brand-500 font-medium">Control de Caja y Turnos</span>
+            <span class="text-xs text-brand-500 font-medium">Control Cloud Centralizado</span>
           </div>
         </div>
         <span id="supabase-status-dot" class="w-3 h-3 rounded-full bg-rose-500 inline-block" title="Estado Conexión Supabase"></span>
@@ -266,8 +266,8 @@
       <div class="max-w-5xl mx-auto space-y-6">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones Independientes</h2>
-            <p id="caja-day-status-label" class="text-xs text-slate-400 mt-0.5">Estado del día: Sin iniciar</p>
+            <h2 class="text-xl font-bold text-slate-100">Caja y Transacciones en la Nube</h2>
+            <p id="caja-day-status-label" class="text-xs text-slate-400 mt-0.5">Estado del día: Sincronizando...</p>
           </div>
           <div class="flex items-center gap-2">
             <button onclick="exportCashReportPDF()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-rose-600/25">
@@ -303,13 +303,13 @@
           </div>
         </div>
 
-        <!-- Tarjeta Exclusiva PedidosYa (Sin desglose interno) -->
+        <!-- Tarjeta Exclusiva PedidosYa -->
         <div class="bg-pink-950/25 border border-pink-500/30 rounded-2xl p-5 flex items-center justify-between">
           <div>
             <h3 class="text-sm font-bold uppercase tracking-wider text-pink-400 flex items-center gap-2 mb-1">
               <i class="fa-solid fa-motorcycle"></i> PedidosYa (Total Independiente)
             </h3>
-            <p class="text-xs text-slate-400">Ingresos totales por plataforma de entrega (no suman al local).</p>
+            <p class="text-xs text-slate-400">Ingresos totales por plataforma de entrega (sincronizado en la nube).</p>
           </div>
           <span id="caja-total-pedidosya" class="text-3xl font-extrabold text-pink-400">Q0.00</span>
         </div>
@@ -436,7 +436,7 @@
           <span class="absolute left-3.5 top-3 text-brand-500 font-bold text-sm">Q</span>
           <input type="number" step="0.01" id="start-day-cash-input" placeholder="0.00" class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-4 py-3 text-base font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500">
         </div>
-        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día se establecerá el fondo y se limpiarán los totales anteriores para la nueva jornada.</p>
+        <p class="text-[11px] text-slate-400 mt-2">Al iniciar el día en la nube, se sincronizará automáticamente en todas las PCs conectadas.</p>
       </div>
       <div class="flex gap-2 pt-2">
         <button onclick="closeStartDayModal()" class="w-1/2 bg-slate-800 text-slate-300 text-xs py-3 rounded-xl font-medium">Cancelar</button>
@@ -572,7 +572,7 @@
     </div>
 
     <div style="text-align: center; font-size: 10px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 20px;">
-      GastroCloud POS - Sistema de Gestión en la Nube
+      GastroCloud POS - Sistema Centralizado en la Nube
     </div>
   </div>
 
@@ -586,6 +586,8 @@
     let currentOrderContext = { type: 'general', id: null, title: 'Cliente General' };
     let mesaActiveOrders = {};
     let globalLogoBase64 = "";
+    
+    // Variables de Estado de Caja en la Nube
     let dayStarted = false;
     let initialCash = 0;
     let currentDayTimestamp = null;
@@ -602,7 +604,6 @@
     window.onload = function () {
       initSupabase();
       loadLogoLocallyPreview();
-      checkLocalDayState();
     };
 
     function initSupabase() {
@@ -610,24 +611,27 @@
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-emerald-500 inline-block";
         checkPersistentSession();
+        fetchCloudDayState();
       } catch (err) {
         document.getElementById('supabase-status-dot').className = "w-3 h-3 rounded-full bg-rose-500 inline-block";
         document.getElementById('auth-modal').classList.remove('hidden');
       }
     }
 
-    function checkLocalDayState() {
-      const savedDay = localStorage.getItem('gastrocloud_day_turn');
-      if (savedDay) {
-        try {
-          const dayData = JSON.parse(savedDay);
-          dayStarted = true;
-          initialCash = dayData.cash || 0;
-          currentDayTimestamp = dayData.timestamp || Date.now();
-          updateDayStatusUI();
-        } catch (e) {
-          localStorage.removeItem('gastrocloud_day_turn');
-        }
+    async function fetchCloudDayState() {
+      if (!supabaseClient) return;
+      const { data, error } = await supabaseClient
+        .from('configuracion_caja')
+        .select('*')
+        .eq('id', 1)
+        .single();
+
+      if (data) {
+        dayStarted = data.day_started;
+        initialCash = parseFloat(data.initial_cash) || 0;
+        currentDayTimestamp = data.day_timestamp ? parseInt(data.day_timestamp) : null;
+        updateDayStatusUI();
+        renderCaja();
       }
     }
 
@@ -639,7 +643,7 @@
       if (dayStarted) {
         if (topBtnLabel) topBtnLabel.textContent = "Reiniciar / Nuevo Día";
         if (topBtn) topBtn.className = "bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0";
-        if (statusLabel) statusLabel.textContent = `Estado: Jornada Activa desde ${new Date(currentDayTimestamp).toLocaleTimeString()} (Fondo: Q${initialCash.toFixed(2)})`;
+        if (statusLabel) statusLabel.textContent = `Estado: Jornada Activa desde ${currentDayTimestamp ? new Date(currentDayTimestamp).toLocaleTimeString() : 'Cloud'} (Fondo: Q${initialCash.toFixed(2)})`;
       } else {
         if (topBtnLabel) topBtnLabel.textContent = "Iniciar Día";
         if (topBtn) topBtn.className = "bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-2 shrink-0 shadow-lg shadow-emerald-600/25";
@@ -656,25 +660,36 @@
       document.getElementById('modal-start-day').classList.add('hidden');
     }
 
-    function confirmStartDay() {
+    async function confirmStartDay() {
       const cashVal = parseFloat(document.getElementById('start-day-cash-input').value);
       if (isNaN(cashVal) || cashVal < 0) {
         return showToast('Ingresa un monto válido', 'error');
       }
 
+      const timestampNow = Date.now();
+
+      // Guardamos el estado centralizado en Supabase para que se refleje en todas las computadoras
+      const { error } = await supabaseClient
+        .from('configuracion_caja')
+        .update({
+          day_started: true,
+          initial_cash: cashVal,
+          day_timestamp: timestampNow
+        })
+        .eq('id', 1);
+
+      if (error) {
+        return showToast('Error al actualizar el estado en Supabase', 'error');
+      }
+
       dayStarted = true;
       initialCash = cashVal;
-      currentDayTimestamp = Date.now();
-
-      localStorage.setItem('gastrocloud_day_turn', JSON.stringify({
-        timestamp: currentDayTimestamp,
-        cash: initialCash
-      }));
+      currentDayTimestamp = timestampNow;
 
       closeStartDayModal();
       updateDayStatusUI();
       renderCaja();
-      showToast(`¡Nuevo día iniciado! Totales reiniciados con Q${initialCash.toFixed(2)} en caja.`, 'success');
+      showToast(`¡Jornada iniciada en la nube con Q${initialCash.toFixed(2)}!`, 'success');
     }
 
     function checkPersistentSession() {
@@ -685,10 +700,10 @@
           onSuccessfulAuth(false);
         } catch (e) {
           localStorage.removeItem('gastrocloud_user');
-          document.getElementById('auth-modal').classList.remove('hidden');
+          document.getElementById('auth-modal').classList.add('hidden');
         }
       } else {
-        document.getElementById('auth-modal').classList.remove('hidden');
+        document.getElementById('auth-modal').classList.add('hidden');
       }
     }
 
@@ -755,6 +770,8 @@
       if (resInventario.data) state.inventario = resInventario.data;
       if (resUsuarios.data) state.usuarios = resUsuarios.data;
 
+      // Actualizar también estado de caja desde la nube
+      await fetchCloudDayState();
       renderAll();
     }
 
@@ -787,7 +804,7 @@
         if (preview) {
           preview.innerHTML = `<img src="${base64String}" style="max-height: 100%; max-width: 100%; object-fit: contain;">`;
         }
-        showToast('¡Logotipo guardado correctamente en el navegador!', 'success');
+        showToast('¡Logotipo guardado correctamente!', 'success');
       };
 
       reader.readAsDataURL(file);
@@ -800,6 +817,7 @@
         .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_caja' }, () => { fetchCloudDayState(); renderCaja(); })
         .subscribe();
     }
 
