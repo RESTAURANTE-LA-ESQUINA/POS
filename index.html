@@ -872,8 +872,12 @@
 
     function subscribeRealtimeChanges() {
       if (!supabaseClient) return;
+      
+      // Limpiamos cualquier canal previo para garantizar la conexión limpia en tiempo real
+      supabaseClient.removeAllChannels();
+
       supabaseClient
-        .channel('public_gastrocloud_sync')
+        .channel('kds-realtime-channel-global')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
