@@ -1080,7 +1080,6 @@
 
       const orderType = currentOrderContext.type === 'pedidosya' ? 'pedidosya' : ((currentOrderContext.type === 'general' || currentOrderContext.type === 'llevar') ? 'venta' : currentOrderContext.type);
 
-      // Si es una mesa, verificamos si ya tiene un pedido activo pendiente en la nube
       let targetOrderId = null;
       if (currentOrderContext.type === 'mesa') {
         const existingOrder = state.pedidos.find(p => p.origen === currentOrderContext.title && p.estado !== 'pagado' && p.estado !== 'cancelado');
@@ -1090,7 +1089,6 @@
       let orderId = targetOrderId;
 
       if (!orderId) {
-        // Crear nuevo pedido cabecera en Supabase
         const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
           origen: currentOrderContext.title,
           tipo: orderType,
@@ -1103,13 +1101,11 @@
         if (error || !orderData) return showToast('Error al registrar pedido en la nube', 'error');
         orderId = orderData[0].id;
       } else {
-        // Actualizar total del pedido existente en la nube
         const existingOrder = state.pedidos.find(p => p.id === orderId);
         const newTotal = (parseFloat(existingOrder.total) || 0) + total;
         await supabaseClient.from('pedidos').update({ total: newTotal, subtotal: newTotal }).eq('id', orderId);
       }
 
-      // Insertar detalles en la nube para que KDS Cocina y Barra los detecten inmediatamente
       const details = nuevosItems.map(item => ({
         pedido_id: orderId,
         producto_id: item.id,
@@ -1324,6 +1320,8 @@
         return showToast('Debes iniciar el día antes de realizar cobros.', 'error');
       }
       if (!currentCart.length) return showToast('El carrito está vacío', 'error');
+      
+      // Calcular total sumando los precios unitarios por cantidad de cada ítem en el carrito actual (enviados y nuevos sin enviar)
       const total = currentCart.reduce((acc, i) => acc + (i.precio * i.cantidad), 0);
       document.getElementById('checkout-amount').textContent = `Q${total.toFixed(2)}`;
       document.getElementById('modal-checkout').classList.remove('hidden');
@@ -1351,19 +1349,37 @@
       }
 
       let orderRecord = null;
+      let itemsToPrint = [...currentCart];
 
+      // Si hay ítems nuevos que no se habían enviado a estaciones antes de cobrar, los insertamos en la nube de una vez
+      const nuevosItems = currentCart.filter(item => !item.enviado);
+      
       if (targetOrderId) {
-        // Actualizar el pedido existente a pagado
+        if (nuevosItems.length > 0) {
+          const details = nuevosItems.map(item => ({
+            pedido_id: targetOrderId,
+            producto_id: item.id,
+            nombre_producto: item.nombre,
+            cantidad: item.cantidad,
+            precio_unitario: item.precio,
+            notas: item.notas,
+            estacion: item.estacion || 'cocina'
+          }));
+          await supabaseClient.from('detalles_pedido').insert(details);
+        }
+
+        // Actualizar el pedido en la nube a pagado
         await supabaseClient.from('pedidos').update({
           estado: 'pagado',
           metodo_pago: method,
-          total: total
+          total: total,
+          subtotal: total
         }).eq('id', targetOrderId);
 
         const { data: updated } = await supabaseClient.from('pedidos').select('*').eq('id', targetOrderId).single();
         orderRecord = updated;
       } else {
-        // Crear nuevo pedido ya pagado (ej: venta general o para llevar inmediata)
+        // Crear nuevo pedido ya pagado (venta general o para llevar)
         const { data: orderData, error } = await supabaseClient.from('pedidos').insert([{
           origen: currentOrderContext.title,
           tipo: orderType,
@@ -1389,7 +1405,7 @@
         await supabaseClient.from('detalles_pedido').insert(details);
       }
 
-      // Descontar inventario por receta
+      // Descontar inventario según las recetas de todos los productos cobrados
       for (const item of currentCart) {
         const productRecipes = state.recetas.filter(r => r.producto_id === item.id);
         for (const rec of productRecipes) {
@@ -1402,12 +1418,13 @@
         }
       }
 
+      // LIBERAR LA MESA AUTOMÁTICAMENTE A DISPONIBLE EN LA NUBE
       if (currentOrderContext.type === 'mesa') {
         await supabaseClient.from('mesas').update({ estado: 'disponible' }).eq('id', currentOrderContext.id);
       }
 
-      printTicket(orderRecord, currentCart);
-      showToast('¡Pago procesado y mesa liberada en la nube!', 'success');
+      printTicket(orderRecord, itemsToPrint);
+      showToast('¡Pago procesado y mesa liberada con éxito!', 'success');
       closeCheckoutModal();
       clearPosCart();
       fetchAllCloudData();
@@ -1870,7 +1887,6 @@
     }
 
     async function removeStaff(userId) {
-      await supabaseClient.from('mesas').delete().eq('id', userId); // o usuarios
       await supabaseClient.from('usuarios').delete().eq('id', userId);
       fetchAllCloudData();
     }
