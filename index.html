@@ -874,9 +874,11 @@
       if (!supabaseClient) return;
       supabaseClient
         .channel('public_gastrocloud_sync')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pedidos' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'detalles_pedido' }, () => { fetchAllCloudData(); })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mesas' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'inventario' }, () => { fetchAllCloudData(); })
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'configuracion_caja' }, async (payload) => {
